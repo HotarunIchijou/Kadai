@@ -1,0 +1,29 @@
+<resources>
+    <string name="app_name">Kadai</string>
+    <string name="menu">Menu</string>
+    <string name="filter">Filter</string>
+    <string name="search">Search</string>
+    <string name="add_task">Add task</string>
+    <string name="save">Save</string>
+    <string name="title">Title</string>
+    <string name="details">Details</string>
+    <string name="cancel">Cancel</string>
+    <string name="dialog_cancel_title">Proceed without saving?</string>
+    <string name="dialog_cancel_text">Are you sure you want to dismiss this task? All your changes will be lost.</string>
+    <string name="ok">OK</string>
+    <string name="task_date">Date</string>
+    <string name="task_time">Time</string>
+    <string name="back">Back</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <string name="yesterday">Yesterday</string>
+    <string name="close">Close</string>
+    <string name="mark_undone">Mark undone</string>
+    <string name="mark_done">Mark done</string>
+    <string name="mark_as_completed">Mark as completed</string>
+    <string name="unmark_as_completed">Unmark as completed</string>
+    <string name="open_menu">Open menu</string>
+    <string name="delete">Delete</string>
+    <string name="tasks">Tasks</string>
+    <string name="settings">Settings</string>
+</resources>
