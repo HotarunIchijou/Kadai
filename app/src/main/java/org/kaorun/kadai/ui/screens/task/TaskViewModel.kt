@@ -3,10 +3,7 @@ package org.kaorun.kadai.ui.screens.task
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.FlowPreview
-import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -16,23 +13,28 @@ import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import org.kaorun.kadai.data.Task
 import org.kaorun.kadai.data.TaskRepository
+import org.kaorun.kadai.reminder.AlarmScheduler
+import org.kaorun.kadai.reminder.data.ScheduledNotification
+import org.kaorun.kadai.reminder.data.ScheduledNotificationRepository
 import javax.inject.Inject
+import kotlin.time.Clock
 
 @OptIn(FlowPreview::class)
 @HiltViewModel
 class TaskViewModel @Inject constructor(
-    private val repository: TaskRepository
+    private val taskRepository: TaskRepository,
+    private val scheduledNotificationRepository: ScheduledNotificationRepository,
+    private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
-
+    private val mutex = Mutex()
     private val _uiState = MutableStateFlow(TaskUiState())
     val uiState: StateFlow<TaskUiState> = _uiState.asStateFlow()
-
-    private var isLoading = true
-
-    private var isLoaded = false
+    private enum class LoadState { NOT_LOADED, LOADING, LOADED }
+    private var loadState = LoadState.NOT_LOADED
     private var isDeleted = false
 
     init {
@@ -44,71 +46,110 @@ class TaskViewModel @Inject constructor(
                 old.timestamp == new.timestamp &&
                 old.isDone == new.isDone
             }
-            .onEach { if (!isLoading && !isDeleted) save(it) }
+            .onEach { if (loadState != LoadState.LOADING && !isDeleted) save() }
             .launchIn(viewModelScope)
+    }
+
+    fun load(taskId: Long) {
+        if (loadState != LoadState.NOT_LOADED) return
+        if (taskId == 0L) {
+            loadState = LoadState.LOADED
+            return
+        }
+
+        loadState = LoadState.LOADING
+        viewModelScope.launch {
+            taskRepository.getTaskById(taskId)?.let {
+                _uiState.value = TaskUiState(
+                    id = it.id,
+                    title = it.title,
+                    details = it.details,
+                    timestamp = it.timestamp,
+                    isDone = it.isDone
+                )
+            }
+            loadState = LoadState.LOADED
+        }
     }
 
     fun onTitleChange(value: String) { _uiState.update { it.copy(title = value) } }
     fun onDetailsChange(value: String) { _uiState.update { it.copy(details = value) } }
-    fun onTimestampChange(value: Long?) { _uiState.update { it.copy(timestamp = value) } }
     fun onDoneChange(value: Boolean) { _uiState.update { it.copy(isDone = value) } }
+    fun onTimestampChange(value: Long?) {
+        if (value == _uiState.value.timestamp) return
 
-    fun load(taskId: Long) {
-        if (isLoaded || taskId == 0L) return
-
-        viewModelScope.launch {
-            repository.getTaskById(taskId)?.let { task ->
-                _uiState.value = TaskUiState(
-                    id = task.id,
-                    title = task.title,
-                    details = task.details,
-                    timestamp = task.timestamp,
-                    isDone = task.isDone
-                )
-                isLoaded = true
-            }
-            isLoading = false
-        }
+        _uiState.update { it.copy(timestamp = value) }
+        viewModelScope.launch { save() }
     }
-
-    private suspend fun save(state: TaskUiState) {
-        if (state.title.isBlank()) {
-            if (state.id != 0L) {
-                withContext(Dispatchers.IO) { repository.delete(state.toTask()) }
-                _uiState.update { it.copy(id = 0L) }
-            }
-            return
-        }
-
-        withContext(Dispatchers.IO) {
-            if (state.id == 0L) {
-                val newId = repository.insert(state.toTask())
-                _uiState.update { it.copy(id = newId) }
-            } else {
-                repository.update(state.toTask())
-            }
-        }
-    }
-
-    fun delete() {
+    fun onDelete() {
         isDeleted = true
-        val state = _uiState.value
-        if (state.id == 0L) return
-
-        _uiState.update { TaskUiState() }
-
-        viewModelScope.launch(Dispatchers.IO) {
-            repository.delete(state.toTask())
+        viewModelScope.launch {
+            mutex.withLock {
+                with(_uiState.value) {
+                    if (id != 0L) {
+                        cancelNotification(taskId = id)
+                        taskRepository.delete(task = toTask())
+                    }
+                }
+            }
         }
     }
 
-    override fun onCleared() {
-        val state = _uiState.value
-        if (state.title.isNotBlank() && !isDeleted) {
-            CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-                save(state)
+    private suspend fun save() = mutex.withLock {
+        with(_uiState.value) {
+            if (title.isBlank()) {
+                if (id != 0L) {
+                    cancelNotification(taskId = id)
+                    taskRepository.delete(task = toTask())
+                    _uiState.update { it.copy(id = 0L) }
+                }
+                return@withLock
+            }
+
+            val id = if (id == 0L) {
+                taskRepository.insert(task = toTask()).also { newId ->
+                    _uiState.update { it.copy(id = newId) }
+                }
+            } else {
+                taskRepository.update(task = toTask())
+                id
+            }
+
+            if (timestamp != null && timestamp > Clock.System.now().toEpochMilliseconds()) {
+                scheduleNotification(
+                    taskId = id,
+                    title = title,
+                    details = details,
+                    triggerAtMillis = timestamp
+                )
+            } else {
+                cancelNotification(taskId = id)
             }
         }
+    }
+
+    private suspend fun scheduleNotification(
+        taskId: Long,
+        title: String,
+        details: String?,
+        triggerAtMillis: Long
+    ) {
+        cancelNotification(taskId = taskId)
+        val notification = ScheduledNotification(
+            taskId = taskId,
+            title = title,
+            details = details,
+            triggerAtMillis = triggerAtMillis
+        )
+        val id = scheduledNotificationRepository.insert(notification)
+        alarmScheduler.schedule(notification.copy(id = id))
+    }
+
+    private suspend fun cancelNotification(taskId: Long) {
+        val existing = scheduledNotificationRepository.getByTaskId(taskId)
+        android.util.Log.d("TaskVM", "cancelNotification taskId=$taskId existing=${existing?.id}")
+        existing?.let { alarmScheduler.cancel(it) }
+        scheduledNotificationRepository.deleteByTaskId(taskId)
     }
 
     private fun TaskUiState.toTask() = Task(

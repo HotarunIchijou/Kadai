@@ -10,6 +10,8 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import org.kaorun.kadai.reminder.data.ScheduledNotificationDao
+import org.kaorun.kadai.reminder.data.ScheduledNotificationRepository
 import javax.inject.Singleton
 
 @Module
@@ -24,8 +26,15 @@ object DatabaseModule {
     ).build()
 
     @Provides
-    fun provideNoteDao(db: TaskDatabase): TaskDao = db.taskDao()
+    fun provideTaskDao(db: TaskDatabase): TaskDao = db.taskDao()
 
     @Provides
-    fun provideRepository(dao: TaskDao): TaskRepository = TaskRepository(dao)
+    fun provideScheduledNotificationDao(db: TaskDatabase): ScheduledNotificationDao = db.scheduledNotificationDao()
+
+    @Provides
+    fun provideTaskRepository(dao: TaskDao): TaskRepository = TaskRepository(dao)
+
+    @Provides
+    fun provideScheduledNotificationRepository(dao: ScheduledNotificationDao) =
+        ScheduledNotificationRepository(dao)
 }

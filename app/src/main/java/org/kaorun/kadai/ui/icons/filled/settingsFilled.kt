@@ -10,12 +10,12 @@ import androidx.compose.ui.graphics.vector.path
 import androidx.compose.ui.unit.dp
 
 @Suppress("CheckReturnValue")
-val settingsFilled: ImageVector
+val settings_filled: ImageVector
   get() {
-    if (_settingsFilled != null) {
-      return _settingsFilled!!
+    if (_settings_filled != null) {
+      return _settings_filled!!
     }
-    _settingsFilled =
+    _settings_filled =
       ImageVector.Builder(
           name = "settings",
           defaultWidth = 24.dp,
@@ -108,7 +108,7 @@ val settingsFilled: ImageVector
           }
         }
         .build()
-    return _settingsFilled!!
+    return _settings_filled!!
   }
 
-private var _settingsFilled: ImageVector? = null
+private var _settings_filled: ImageVector? = null

@@ -19,6 +19,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.IntOffset
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDecorator
+import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
@@ -29,9 +30,13 @@ import org.kaorun.kadai.ui.screens.task.TaskViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun Navigation() {
-    val backStack = rememberNavBackStack(MainRoute)
-
+fun Navigation(
+    initialDeepLink: NavRoute? = null
+) {
+    val initialStack: Array<NavKey> = remember(initialDeepLink) {
+        DeepLinkParser.buildSyntheticBackStack(initialDeepLink)
+    }
+    val backStack = rememberNavBackStack(*initialStack)
     val spatialSpec: FiniteAnimationSpec<IntOffset> = remember { tween(300) }
     val effectsSpec: FiniteAnimationSpec<Float> = remember { tween(300) }
     val fastFadeSpec: FiniteAnimationSpec<Float> = remember { tween(100) }
@@ -70,9 +75,9 @@ fun Navigation() {
             entry<MainRoute> {
                 MainScreen(
                     onNavigateToTask = { taskId ->
-                        taskId?.let {
+                        if (taskId != null) {
                             backStack.add(TaskRoute(taskId = taskId))
-                        } ?: run {
+                        } else {
                             backStack.add(AddTaskRoute())
                         }
                     }

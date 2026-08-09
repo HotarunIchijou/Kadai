@@ -16,15 +16,22 @@ fun TextField(
     sampleText: String,
     textStyle: TextStyle,
     onValueChange: (String) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    maxLines: Int = 5
 ) {
     BasicTextField(
         value = text,
-        onValueChange = onValueChange,
+        onValueChange = { newText ->
+            val lineCount = newText.count { it == '\n' } + 1
+            if (lineCount <= maxLines) {
+                onValueChange(newText)
+            }
+        },
         modifier = modifier,
         textStyle = textStyle.copy(
             color = MaterialTheme.colorScheme.onSurface
         ),
+        maxLines = maxLines,
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         decorationBox = { innerTextField ->
             Box(modifier = Modifier.fillMaxWidth()) {
