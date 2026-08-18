@@ -25,17 +25,24 @@ import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
 import org.kaorun.kadai.ui.screens.main.MainScreen
+import org.kaorun.kadai.ui.screens.permission.PermissionScreen
 import org.kaorun.kadai.ui.screens.task.TaskScreen
 import org.kaorun.kadai.ui.screens.task.TaskViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun Navigation(
+    startRoute: NavRoute,
+    onCompleteOnboarding: () -> Unit,
     initialDeepLink: NavRoute? = null
 ) {
-    val initialStack: Array<NavKey> = remember(initialDeepLink) {
-        DeepLinkParser.buildSyntheticBackStack(initialDeepLink)
+    val initialStack: Array<NavKey> = remember(initialDeepLink, startRoute) {
+        when {
+            initialDeepLink != null -> DeepLinkParser.buildSyntheticBackStack(initialDeepLink)
+            else -> arrayOf(startRoute)
+        }
     }
+
     val backStack = rememberNavBackStack(*initialStack)
     val spatialSpec: FiniteAnimationSpec<IntOffset> = remember { tween(300) }
     val effectsSpec: FiniteAnimationSpec<Float> = remember { tween(300) }
@@ -72,6 +79,16 @@ fun Navigation(
         popTransitionSpec = { popEnterTransition togetherWith popExitTransition },
         predictivePopTransitionSpec = { popEnterTransition togetherWith popExitTransition },
         entryProvider = entryProvider {
+            entry<PermissionRoute> {
+                PermissionScreen(
+                    onContinue = {
+                        onCompleteOnboarding()
+                        backStack.clear()
+                        backStack.add(MainRoute)
+                    }
+                )
+            }
+
             entry<MainRoute> {
                 MainScreen(
                     onNavigateToTask = { taskId ->

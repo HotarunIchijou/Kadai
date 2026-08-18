@@ -4,9 +4,12 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
-import org.kaorun.kadai.MainActivity
-import org.kaorun.kadai.reminder.Notifier
+import androidx.core.app.NotificationCompat
 import androidx.core.net.toUri
+import org.kaorun.kadai.MainActivity
+import org.kaorun.kadai.R
+import org.kaorun.kadai.reminder.Notifier
+import org.kaorun.kadai.reminder.receiver.AlarmReceiver
 
 class NotificationNotifier(
     context: Context,
@@ -38,10 +41,30 @@ class NotificationNotifier(
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val completeIntent = Intent(context, AlarmReceiver::class.java).apply {
+            action = AlarmReceiver.ACTION_MARK_COMPLETED
+            putExtra(AlarmReceiver.EXTRA_TASK_ID, taskId)
+            putExtra(NotificationAlarmScheduler.NOTIFICATION_ID, messageId)
+        }
+
+        val completePendingIntent = PendingIntent.getBroadcast(
+            context,
+            messageId.toInt(),
+            completeIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         val builder = baseBuilder()
             .setContentTitle(title)
             .setContentText(content)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .addAction(
+                0,
+                context.getString(R.string.mark_as_completed),
+                completePendingIntent
+            )
 
         notify(builder)
     }

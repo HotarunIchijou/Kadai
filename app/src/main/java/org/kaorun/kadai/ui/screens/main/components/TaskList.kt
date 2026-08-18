@@ -81,7 +81,7 @@ fun TaskList(
                 colors = colors,
                 leadingContent = {
                     RoundedCheckbox(
-                        checked = task.isDone,
+                        checked = task.isCompleted,
                         onValueChange = { checked -> onCheck(task, checked) }
                     )
                 },
@@ -89,7 +89,7 @@ fun TaskList(
                     Text(
                         text = task.title,
                         maxLines = 1,
-                        textDecoration = if (task.isDone) TextDecoration.LineThrough else null
+                        textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                     )
                 },
                 supportingContent = {
@@ -97,7 +97,7 @@ fun TaskList(
                         Text(
                             text = it,
                             maxLines = 2,
-                            textDecoration = if (task.isDone) TextDecoration.LineThrough else null
+                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                         )
                     }
                 },
@@ -108,7 +108,7 @@ fun TaskList(
                         val time = it.toFormattedTime(context)
                         Text(
                             text = "$date, $time",
-                            textDecoration = if (task.isDone) TextDecoration.LineThrough else null
+                            textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                         )
                     }
                 },
@@ -190,7 +190,7 @@ fun TaskListSection(
                         colors = colors,
                         leadingContent = {
                             RoundedCheckbox(
-                                checked = task.isDone,
+                                checked = task.isCompleted,
                                 onValueChange = { checked -> onCheck(task, checked) }
                             )
                         },
@@ -198,7 +198,7 @@ fun TaskListSection(
                             Text(
                                 text = task.title,
                                 maxLines = 1,
-                                textDecoration = if (task.isDone) TextDecoration.LineThrough else null
+                                textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                             )
                         },
                         supportingContent = {
@@ -206,7 +206,7 @@ fun TaskListSection(
                                 Text(
                                     text = it,
                                     maxLines = 2,
-                                    textDecoration = if (task.isDone) TextDecoration.LineThrough else null
+                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                                 )
                             }
                         },
@@ -217,7 +217,7 @@ fun TaskListSection(
                                 val time = it.toFormattedTime(context)
                                 Text(
                                     text = "$date, $time",
-                                    textDecoration = if (task.isDone) TextDecoration.LineThrough else null
+                                    textDecoration = if (task.isCompleted) TextDecoration.LineThrough else null
                                 )
                             }
                         }

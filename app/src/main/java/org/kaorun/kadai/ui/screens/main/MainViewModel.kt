@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskRepository
+import org.kaorun.kadai.data.repository.TaskRepository
 import javax.inject.Inject
 
 @HiltViewModel
@@ -34,7 +34,7 @@ class MainViewModel @Inject constructor(
         )
     fun onTaskCheck(task: Task, isDone: Boolean) {
         viewModelScope.launch {
-            repository.update(task.copy(isDone = isDone))
+            repository.update(task.copy(isCompleted = isDone))
         }
     }
 

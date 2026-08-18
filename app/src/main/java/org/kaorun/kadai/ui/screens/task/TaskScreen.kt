@@ -65,12 +65,12 @@ fun TaskScreen(
         timestamp = uiState.timestamp,
         isDone = uiState.isDone,
         modifier = modifier,
+        onClose = { viewModel.onBack(navigateBack = onBack) },
         onTitleChange = viewModel::onTitleChange,
         onDetailsChange = viewModel::onDetailsChange,
         onTimestampChange = viewModel::onTimestampChange,
         onDoneChange = viewModel::onDoneChange,
-        onDelete = viewModel::onDelete,
-        onClose = onBack
+        onDelete = viewModel::onDelete
     )
 }
 
@@ -114,7 +114,8 @@ fun TaskScreenContent(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onDoneChange(!isDone) },
-                isDone = isDone,
+                isCompleted = isDone,
+                isVisible = title.isNotBlank() || details?.isNotBlank() == true,
                 modifier = Modifier.imePadding()
             )
         }

@@ -4,7 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import org.kaorun.kadai.data.TaskDao
 import org.kaorun.kadai.data.TaskDatabase
-import org.kaorun.kadai.data.TaskRepository
+import org.kaorun.kadai.data.repository.TaskRepository
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -29,7 +29,8 @@ object DatabaseModule {
     fun provideTaskDao(db: TaskDatabase): TaskDao = db.taskDao()
 
     @Provides
-    fun provideScheduledNotificationDao(db: TaskDatabase): ScheduledNotificationDao = db.scheduledNotificationDao()
+    fun provideScheduledNotificationDao(db: TaskDatabase): ScheduledNotificationDao =
+        db.scheduledNotificationDao()
 
     @Provides
     fun provideTaskRepository(dao: TaskDao): TaskRepository = TaskRepository(dao)

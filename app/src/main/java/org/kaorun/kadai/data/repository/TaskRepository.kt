@@ -1,6 +1,8 @@
-package org.kaorun.kadai.data
+package org.kaorun.kadai.data.repository
 
 import kotlinx.coroutines.flow.Flow
+import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.TaskDao
 
 class TaskRepository(private val taskDao: TaskDao) {
     val allTasks: Flow<List<Task>> = taskDao.getAllByIdDesc()

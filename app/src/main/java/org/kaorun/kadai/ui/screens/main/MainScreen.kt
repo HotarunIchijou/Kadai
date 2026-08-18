@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalMaterial3Api::class)
+
 package org.kaorun.kadai.ui.screens.main
 
 import androidx.compose.foundation.layout.Arrangement
@@ -8,7 +10,7 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -42,7 +44,7 @@ import org.kaorun.kadai.R
 import org.kaorun.kadai.data.Task
 import org.kaorun.kadai.ui.icons.add_task
 import org.kaorun.kadai.ui.icons.done_all
-import org.kaorun.kadai.ui.icons.filled.list_alt_filled
+import org.kaorun.kadai.ui.icons.filled.list_filled
 import org.kaorun.kadai.ui.screens.main.components.FloatingToolbar
 import org.kaorun.kadai.ui.screens.main.components.ModalWideNavigationRail
 import org.kaorun.kadai.ui.screens.main.components.TaskList
@@ -63,7 +65,6 @@ fun MainScreen(
     )
 }
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun MainScreenContent(
     tasks: List<Task>,
@@ -100,7 +101,7 @@ fun MainScreenContent(
                         }
                     },
                     items = mapOf(
-                        list_alt_filled to stringResource(R.string.pending),
+                        list_filled to stringResource(R.string.pending),
                         done_all to stringResource(R.string.completed)
                     ),
                     selectedIndex = pagerState.currentPage
@@ -149,13 +150,13 @@ fun MainScreenContent(
         ) { page ->
             when (page) {
                 0 -> TaskList(
-                    tasks = remember(tasks) { tasks.filter { !it.isDone } },
+                    tasks = remember(tasks) { tasks.filter { !it.isCompleted } },
                     contentPadding = listContentPadding,
                     onClick = { task -> onNavigateToTask(task.id) },
                     onCheck = onCheck
                 )
                 1 -> TaskList(
-                    tasks = remember(tasks) { tasks.filter { it.isDone } },
+                    tasks = remember(tasks) { tasks.filter { it.isCompleted } },
                     contentPadding = listContentPadding,
                     onClick = { task -> onNavigateToTask(task.id) },
                     onCheck = onCheck

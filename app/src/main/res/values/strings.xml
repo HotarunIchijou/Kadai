@@ -18,8 +18,6 @@
     <string name="tomorrow">Tomorrow</string>
     <string name="yesterday">Yesterday</string>
     <string name="close">Close</string>
-    <string name="mark_undone">Mark undone</string>
-    <string name="mark_done">Mark done</string>
     <string name="mark_as_completed">Mark as completed</string>
     <string name="unmark_as_completed">Unmark as completed</string>
     <string name="open_menu">Open menu</string>
@@ -31,4 +29,11 @@
     <string name="expand">Expand</string>
     <string name="completed">Completed</string>
     <string name="clear">Clear</string>
+    <string name="notification_permission_title">Never miss a deadline</string>
+    <string name="notification_permission_summary">Kadai requires background and notification access to ensure your task reminders trigger exactly on time.</string>
+    <string name="granted">Granted</string>
+    <string name="not_granted">Not granted</string>
+    <string name="continue_button">Continue</string>
+    <string name="schedule_exact_alarms">Schedule exact alarms</string>
+    <string name="notification_permission">Notification permission</string>
 </resources>

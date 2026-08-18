@@ -10,6 +10,9 @@ interface DeepLinkKey : NavRoute {
 }
 
 @Serializable
+data object PermissionRoute : NavRoute
+
+@Serializable
 data object MainRoute : NavRoute
 
 @Serializable

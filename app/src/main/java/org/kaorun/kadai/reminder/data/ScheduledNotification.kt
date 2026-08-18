@@ -10,5 +10,6 @@ data class ScheduledNotification(
     val title: String,
     val details: String?,
     val triggerAtMillis: Long,
+    val isCompleted: Boolean = false,
     val isSent: Boolean = false
 )

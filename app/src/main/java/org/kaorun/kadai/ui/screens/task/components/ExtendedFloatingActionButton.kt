@@ -1,5 +1,9 @@
 package org.kaorun.kadai.ui.screens.task.components
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -14,31 +18,35 @@ import org.kaorun.kadai.ui.icons.remove_done
 @Composable
 fun ExtendedFloatingActionButton(
     onClick: () -> Unit,
-    isDone: Boolean,
+    isVisible: Boolean,
+    isCompleted: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val text = if (!isDone) {
+    val text = if (!isCompleted) {
         stringResource(R.string.mark_as_completed)
     } else stringResource(R.string.unmark_as_completed)
-    val contentDescription = if (!isDone) {
-        stringResource(R.string.mark_done)
-    } else stringResource(R.string.mark_undone)
-    val icon = if (!isDone) done_all else remove_done
+    val icon = if (!isCompleted) done_all else remove_done
 
-    ExtendedFloatingActionButton(
-        text = {
-            Text(text)
-        },
-        icon = {
-            Icon(
-                imageVector = icon,
-                contentDescription = contentDescription
-            )
-        },
-        onClick = onClick,
-        modifier = modifier,
-        containerColor = if (!isDone) {
-            MaterialTheme.colorScheme.primaryContainer
-        } else MaterialTheme.colorScheme.tertiaryContainer
-    )
+    AnimatedVisibility(
+        visible = isVisible,
+        enter = scaleIn(animationSpec = tween(150)),
+        exit = scaleOut(animationSpec = tween(150)),
+    ) {
+        ExtendedFloatingActionButton(
+            text = {
+                Text(text)
+            },
+            icon = {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null
+                )
+            },
+            onClick = onClick,
+            modifier = modifier,
+            containerColor = if (!isCompleted) {
+                MaterialTheme.colorScheme.primaryContainer
+            } else MaterialTheme.colorScheme.tertiaryContainer
+        )
+    }
 }

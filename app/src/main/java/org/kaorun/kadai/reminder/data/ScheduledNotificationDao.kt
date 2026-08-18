@@ -14,6 +14,9 @@ interface ScheduledNotificationDao {
     @Query("UPDATE scheduled_messages SET isSent = 1 WHERE id = :id")
     suspend fun markSent(id: Long)
 
+    @Query("UPDATE scheduled_messages SET isCompleted = 1 WHERE id = :id")
+    suspend fun markCompleted(id: Long)
+
     @Delete
     suspend fun delete(notification: ScheduledNotification): Int
 

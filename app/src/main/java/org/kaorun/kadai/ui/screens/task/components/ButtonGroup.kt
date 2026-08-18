@@ -12,12 +12,12 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalToggleButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
-import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -49,8 +49,7 @@ fun ButtonGroupScope.buttonGroupToggleItem(
                 checked = isChecked,
                 onCheckedChange = { onClick() },
                 interactionSource = interactionSource,
-                shapes = ToggleButtonDefaults.shapes(),
-                colors = ToggleButtonDefaults.tonalToggleButtonColors(),
+                colors = FilledTonalToggleButtonDefaults.filledTonalToggleButtonColors(),
                 contentPadding = ButtonDefaults.ExtraSmallContentPadding,
                 modifier = Modifier
                     .animateWidth(interactionSource)

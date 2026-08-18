@@ -7,6 +7,8 @@ class ScheduledNotificationRepository(private val dao: ScheduledNotificationDao)
 
     suspend fun markSent(id: Long) = dao.markSent(id)
 
+    suspend fun markCompleted(id: Long) = dao.markCompleted(id)
+
     suspend fun delete(notification: ScheduledNotification): Int {
         return dao.delete(notification)
     }

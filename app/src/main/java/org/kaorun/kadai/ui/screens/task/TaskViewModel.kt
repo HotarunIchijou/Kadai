@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskRepository
+import org.kaorun.kadai.data.repository.TaskRepository
 import org.kaorun.kadai.reminder.AlarmScheduler
 import org.kaorun.kadai.reminder.data.ScheduledNotification
 import org.kaorun.kadai.reminder.data.ScheduledNotificationRepository
@@ -39,13 +39,13 @@ class TaskViewModel @Inject constructor(
 
     init {
         _uiState
-            .debounce(400)
             .distinctUntilChanged { old, new ->
                 old.title == new.title &&
                 old.details == new.details &&
                 old.timestamp == new.timestamp &&
                 old.isDone == new.isDone
             }
+            .debounce(400)
             .onEach { if (loadState != LoadState.LOADING && !isDeleted) save() }
             .launchIn(viewModelScope)
     }
@@ -65,10 +65,22 @@ class TaskViewModel @Inject constructor(
                     title = it.title,
                     details = it.details,
                     timestamp = it.timestamp,
-                    isDone = it.isDone
+                    isDone = it.isCompleted
                 )
             }
             loadState = LoadState.LOADED
+        }
+    }
+
+
+    fun onBack(navigateBack: () -> Unit) {
+        if (loadState != LoadState.LOADING && !isDeleted) {
+            viewModelScope.launch {
+                save()
+                navigateBack()
+            }
+        } else {
+            navigateBack()
         }
     }
 
@@ -157,6 +169,6 @@ class TaskViewModel @Inject constructor(
         title = title,
         details = details,
         timestamp = timestamp,
-        isDone = isDone
+        isCompleted = isDone
     )
 }

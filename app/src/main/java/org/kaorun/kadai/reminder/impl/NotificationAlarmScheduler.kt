@@ -19,9 +19,9 @@ class NotificationAlarmScheduler @Inject constructor(
     }
 
     override fun schedule(notification: ScheduledNotification) {
-        if (notification.triggerAtMillis <= System.currentTimeMillis() || notification.isSent) {
-            return
-        }
+        if (notification.triggerAtMillis <= System.currentTimeMillis() ||
+            notification.isSent ||
+            notification.isCompleted) { return }
 
         try {
             alarmManager.setExactAndAllowWhileIdle(
@@ -35,7 +35,9 @@ class NotificationAlarmScheduler @Inject constructor(
     }
 
     override fun cancel(notification: ScheduledNotification) {
-        alarmManager.cancel(createPendingIntent(notification))
+        val pendingIntent = createPendingIntent(notification)
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
     }
 
     private fun createPendingIntent(notification: ScheduledNotification): PendingIntent {
