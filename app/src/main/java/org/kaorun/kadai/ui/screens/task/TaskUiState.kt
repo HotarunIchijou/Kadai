@@ -1,12 +1,13 @@
 package org.kaorun.kadai.ui.screens.task
 
-import androidx.compose.runtime.Immutable
+sealed interface TaskUiState {
+    data object Loading : TaskUiState
 
-@Immutable
-data class TaskUiState(
-    val id: Long = 0,
-    val title: String = "",
-    val details: String? = null,
-    val timestamp: Long? = null,
-    val isDone: Boolean = false
-)
+    data class Success(
+        val id: Long? = null,
+        val title: String = "",
+        val details: String? = null,
+        val timestamp: Long? = null,
+        val isDone: Boolean = false
+    ) : TaskUiState
+}

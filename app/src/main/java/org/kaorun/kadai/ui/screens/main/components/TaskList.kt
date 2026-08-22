@@ -7,6 +7,8 @@ import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -37,31 +39,42 @@ import org.kaorun.kadai.ui.utils.toFormattedTime
 @Composable
 fun TaskList(
     tasks: List<Task>,
+    showPermissionCard: Boolean,
     contentPadding: PaddingValues,
     onClick: (Task) -> Unit,
-    onCheck: (Task, Boolean) -> Unit
+    onCheck: (Task, Boolean) -> Unit,
+    onPermissionCardClick: () -> Unit
 ) {
     val cornerSize = 20.dp
     val innerCornerSize = 4.dp
     val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceBright)
+
     LazyColumn(
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
     ) {
+        if (showPermissionCard) {
+            item(key = "permission_missing_card", contentType = "permission_card") {
+                PermissionMissingCard(onClick = onPermissionCardClick)
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+        }
+
         itemsIndexed(
             items = tasks,
-            key = {_, task -> task.id }
+            key = { _, task -> task.id },
+            contentType = { _, _ -> "task_item" }
         ) { index, task ->
             val shape = remember(index, tasks.size) {
-                if (tasks.size == 1) RoundedCornerShape(cornerSize)
-                when (index) {
-                    0 -> RoundedCornerShape(
+                when {
+                    tasks.size == 1 -> RoundedCornerShape(cornerSize)
+                    index == 0 -> RoundedCornerShape(
                         topStart = cornerSize,
                         topEnd = cornerSize,
                         bottomStart = innerCornerSize,
                         bottomEnd = innerCornerSize
                     )
-                    tasks.lastIndex -> RoundedCornerShape(
+                    index == tasks.lastIndex -> RoundedCornerShape(
                         topStart = innerCornerSize,
                         topEnd = innerCornerSize,
                         bottomStart = cornerSize,
@@ -74,8 +87,8 @@ fun TaskList(
             SegmentedListItem(
                 onClick = { onClick(task) },
                 shapes = ListItemDefaults.segmentedShapes(
-                    index = index + 1,
-                    count = tasks.size + 1,
+                    index = index,
+                    count = tasks.size
                 ),
                 modifier = Modifier.clip(shape),
                 colors = colors,

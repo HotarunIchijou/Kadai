@@ -26,10 +26,23 @@ data class PermissionItem(
     val onClick: () -> Unit
 )
 
-private fun segmentShape(index: Int, count: Int, outer: Dp = 20.dp, inner: Dp = 4.dp) = when (index) {
-    0 -> RoundedCornerShape(topStart = outer, topEnd = outer, bottomStart = inner, bottomEnd = inner)
-    count - 1 -> RoundedCornerShape(topStart = inner, topEnd = inner, bottomStart = outer, bottomEnd = outer)
-    else -> RoundedCornerShape(inner)
+private fun segmentShape(index: Int, count: Int, outer: Dp = 20.dp, inner: Dp = 4.dp) =
+    when (index) {
+        0 ->
+            RoundedCornerShape(
+                topStart = outer,
+                topEnd = outer,
+                bottomStart = inner,
+                bottomEnd = inner
+            )
+        count - 1 ->
+            RoundedCornerShape(
+                topStart = inner,
+                topEnd = inner,
+                bottomStart = outer,
+                bottomEnd = outer
+            )
+        else -> RoundedCornerShape(inner)
 }
 
 @Composable

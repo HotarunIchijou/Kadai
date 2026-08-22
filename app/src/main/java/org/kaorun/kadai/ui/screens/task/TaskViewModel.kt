@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
@@ -31,14 +32,16 @@ class TaskViewModel @Inject constructor(
     private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
     private val mutex = Mutex()
-    private val _uiState = MutableStateFlow(TaskUiState())
+    private val _uiState = MutableStateFlow<TaskUiState>(TaskUiState.Loading)
     val uiState: StateFlow<TaskUiState> = _uiState.asStateFlow()
+
     private enum class LoadState { NOT_LOADED, LOADING, LOADED }
     private var loadState = LoadState.NOT_LOADED
     private var isDeleted = false
 
     init {
         _uiState
+            .filterIsInstance<TaskUiState.Success>()
             .distinctUntilChanged { old, new ->
                 old.title == new.title &&
                 old.details == new.details &&
@@ -46,35 +49,37 @@ class TaskViewModel @Inject constructor(
                 old.isDone == new.isDone
             }
             .debounce(400)
-            .onEach { if (loadState != LoadState.LOADING && !isDeleted) save() }
+            .onEach { if (!isDeleted) save() }
             .launchIn(viewModelScope)
     }
 
-    fun load(taskId: Long) {
+    fun load(taskId: Long?) {
         if (loadState != LoadState.NOT_LOADED) return
-        if (taskId == 0L) {
+
+        if (taskId == null || taskId == 0L) {
+            _uiState.value = TaskUiState.Success()
             loadState = LoadState.LOADED
             return
         }
 
         loadState = LoadState.LOADING
         viewModelScope.launch {
-            taskRepository.getTaskById(taskId)?.let {
-                _uiState.value = TaskUiState(
-                    id = it.id,
-                    title = it.title,
-                    details = it.details,
-                    timestamp = it.timestamp,
-                    isDone = it.isCompleted
+            val task = taskRepository.getTaskById(taskId)
+            _uiState.value = task?.let {
+                TaskUiState.Success(
+                    id = task.id,
+                    title = task.title,
+                    details = task.details,
+                    timestamp = task.timestamp,
+                    isDone = task.isCompleted
                 )
-            }
+            } ?: run { TaskUiState.Success() }
             loadState = LoadState.LOADED
         }
     }
 
-
     fun onBack(navigateBack: () -> Unit) {
-        if (loadState != LoadState.LOADING && !isDeleted) {
+        if (!isDeleted && _uiState.value is TaskUiState.Success) {
             viewModelScope.launch {
                 save()
                 navigateBack()
@@ -84,44 +89,68 @@ class TaskViewModel @Inject constructor(
         }
     }
 
-    fun onTitleChange(value: String) { _uiState.update { it.copy(title = value) } }
-    fun onDetailsChange(value: String) { _uiState.update { it.copy(details = value) } }
-    fun onDoneChange(value: Boolean) { _uiState.update { it.copy(isDone = value) } }
-    fun onTimestampChange(value: Long?) {
-        if (value == _uiState.value.timestamp) return
+    fun onTitleChange(value: String) {
+        _uiState.update { state ->
+            if (state is TaskUiState.Success) state.copy(title = value)
+            else state
+        }
+    }
 
-        _uiState.update { it.copy(timestamp = value) }
+    fun onDetailsChange(value: String) {
+        _uiState.update { state ->
+            if (state is TaskUiState.Success) state.copy(details = value)
+            else state
+        }
+    }
+
+    fun onDoneChange(value: Boolean) {
+        _uiState.update { state ->
+            if (state is TaskUiState.Success) state.copy(isDone = value)
+            else state
+        }
+    }
+
+    fun onTimestampChange(value: Long?) {
+        val currentState = _uiState.value as? TaskUiState.Success ?: return
+        if (value == currentState.timestamp) return
+
+        _uiState.update { state ->
+            if (state is TaskUiState.Success) state.copy(timestamp = value)
+            else state
+        }
         viewModelScope.launch { save() }
     }
+
     fun onDelete() {
         isDeleted = true
         viewModelScope.launch {
             mutex.withLock {
-                with(_uiState.value) {
-                    if (id != 0L) {
-                        cancelNotification(taskId = id)
-                        taskRepository.delete(task = toTask())
-                    }
+                val currentState = _uiState.value as? TaskUiState.Success ?: return@withLock
+                val currentId = currentState.id
+                if (currentId != null && currentId != 0L) {
+                    cancelNotification(taskId = currentId)
+                    taskRepository.delete(task = currentState.toTask())
                 }
             }
         }
     }
 
     private suspend fun save() = mutex.withLock {
-        with(_uiState.value) {
+        val currentState = _uiState.value as? TaskUiState.Success ?: return@withLock
+        with(currentState) {
             if (title.isBlank()) {
-                if (id != 0L) {
+                if (id != null && id != 0L) {
                     cancelNotification(taskId = id)
                     taskRepository.delete(task = toTask())
-                    _uiState.update { it.copy(id = 0L) }
+                    _uiState.update { (it as? TaskUiState.Success)?.copy(id = null) ?: it }
                 }
                 return@withLock
             }
 
-            val id = if (id == 0L) {
-                taskRepository.insert(task = toTask()).also { newId ->
-                    _uiState.update { it.copy(id = newId) }
-                }
+            val savedId = if (id == null || id == 0L) {
+                val newId = taskRepository.insert(task = toTask())
+                _uiState.update { (it as? TaskUiState.Success)?.copy(id = newId) ?: it }
+                newId
             } else {
                 taskRepository.update(task = toTask())
                 id
@@ -129,13 +158,13 @@ class TaskViewModel @Inject constructor(
 
             if (timestamp != null && timestamp > Clock.System.now().toEpochMilliseconds()) {
                 scheduleNotification(
-                    taskId = id,
+                    taskId = savedId,
                     title = title,
-                    details = details,
+                    details = details?.trim()?.takeIf { it.isNotEmpty() },
                     triggerAtMillis = timestamp
                 )
             } else {
-                cancelNotification(taskId = id)
+                cancelNotification(taskId = savedId)
             }
         }
     }
@@ -159,15 +188,14 @@ class TaskViewModel @Inject constructor(
 
     private suspend fun cancelNotification(taskId: Long) {
         val existing = scheduledNotificationRepository.getByTaskId(taskId)
-        android.util.Log.d("TaskVM", "cancelNotification taskId=$taskId existing=${existing?.id}")
         existing?.let { alarmScheduler.cancel(it) }
         scheduledNotificationRepository.deleteByTaskId(taskId)
     }
 
-    private fun TaskUiState.toTask() = Task(
-        id = id,
-        title = title,
-        details = details,
+    private fun TaskUiState.Success.toTask() = Task(
+        id = id ?: 0L,
+        title = title.trim(),
+        details = details?.trim()?.takeIf { it.isNotEmpty() },
         timestamp = timestamp,
         isCompleted = isDone
     )

@@ -36,4 +36,7 @@
     <string name="continue_button">Continue</string>
     <string name="schedule_exact_alarms">Schedule exact alarms</string>
     <string name="notification_permission">Notification permission</string>
+    <string name="error_icon">Error icon</string>
+    <string name="permissions_missing_title">Required permissions are missing</string>
+    <string name="notification_permission_denied">Notification permission denied</string>
 </resources>

@@ -59,19 +59,24 @@ fun TaskScreen(
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    TaskScreenContent(
-        title = uiState.title,
-        details = uiState.details,
-        timestamp = uiState.timestamp,
-        isDone = uiState.isDone,
-        modifier = modifier,
-        onClose = { viewModel.onBack(navigateBack = onBack) },
-        onTitleChange = viewModel::onTitleChange,
-        onDetailsChange = viewModel::onDetailsChange,
-        onTimestampChange = viewModel::onTimestampChange,
-        onDoneChange = viewModel::onDoneChange,
-        onDelete = viewModel::onDelete
-    )
+    when (val state = uiState) {
+        is TaskUiState.Loading -> Unit
+        is TaskUiState.Success -> {
+            TaskScreenContent(
+                title = state.title,
+                details = state.details,
+                timestamp = state.timestamp,
+                isDone = state.isDone,
+                modifier = modifier,
+                onClose = { viewModel.onBack(navigateBack = onBack) },
+                onTitleChange = viewModel::onTitleChange,
+                onDetailsChange = viewModel::onDetailsChange,
+                onTimestampChange = viewModel::onTimestampChange,
+                onDoneChange = viewModel::onDoneChange,
+                onDelete = viewModel::onDelete
+            )
+        }
+    }
 }
 
 @Composable
@@ -199,10 +204,10 @@ fun TaskScreenContent(
 
         if (isDialogTimeVisible) {
             TimePicker(
-                onConfirm = { timePickerState ->
+                onConfirm = { pickerState ->
                     val updatedTimestamp = combineDateAndTime(
                         dateMillis = timestamp,
-                        timeState = timePickerState
+                        timeState = pickerState
                     )
                     onTimestampChange(updatedTimestamp)
                     isDialogTimeVisible = false

@@ -3,9 +3,12 @@
 package org.kaorun.kadai.ui.screens.permission
 
 import android.Manifest
+import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Intent
 import android.os.Build
 import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -27,7 +30,6 @@ import androidx.compose.foundation.style.styleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.Scaffold
@@ -46,6 +48,7 @@ import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.app.ActivityCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -55,26 +58,38 @@ import org.kaorun.kadai.ui.screens.permission.components.PermissionCloseButton
 import org.kaorun.kadai.ui.screens.permission.components.PermissionHeader
 import org.kaorun.kadai.ui.screens.permission.components.PermissionItem
 import org.kaorun.kadai.ui.screens.permission.components.PermissionItemsList
-import org.kaorun.kadai.ui.screens.permission.utils.exactAlarmPermissionMissing
-import org.kaorun.kadai.ui.screens.permission.utils.notificationPermissionMissing
+import org.kaorun.kadai.ui.screens.permission.utils.isExactAlarmPermissionGranted
+import org.kaorun.kadai.ui.screens.permission.utils.isNotificationPermissionGranted
+import androidx.core.net.toUri
 
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+
+@SuppressLint("ObsoleteSdkInt")
 @Composable
-fun PermissionScreen(onContinue: () -> Unit) {
+fun PermissionScreen(
+    onContinue: () -> Unit,
+    canGoBack: Boolean = false
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-
-    var isCloseButtonVisible by rememberSaveable { mutableStateOf(false) }
-    var isNotificationGranted by remember { mutableStateOf(!notificationPermissionMissing(context)) }
-    var isAlarmGranted by remember { mutableStateOf(!exactAlarmPermissionMissing(context)) }
+    val permissionDeniedString = stringResource(R.string.notification_permission_denied)
+    var currentToast: Toast? by remember { mutableStateOf(null) }
+    var isNotificationGranted by remember {
+        mutableStateOf(isNotificationPermissionGranted(context))
+    }
+    var isAlarmGranted by remember {
+        mutableStateOf(isExactAlarmPermissionGranted(context))
+    }
+    var isCloseButtonVisible by rememberSaveable { mutableStateOf(canGoBack) }
     val allGranted = isNotificationGranted && isAlarmGranted
+
+    fun refreshPermissions() {
+        isNotificationGranted = isNotificationPermissionGranted(context)
+        isAlarmGranted = isExactAlarmPermissionGranted(context)
+    }
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                isNotificationGranted = !notificationPermissionMissing(context)
-                isAlarmGranted = !exactAlarmPermissionMissing(context)
-            }
+            if (event == Lifecycle.Event.ON_RESUME) refreshPermissions()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -82,7 +97,28 @@ fun PermissionScreen(onContinue: () -> Unit) {
 
     val notificationLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission()
-    ) { granted -> isNotificationGranted = !granted }
+    ) { granted ->
+        refreshPermissions()
+
+        if (!granted &&
+            !ActivityCompat.shouldShowRequestPermissionRationale(
+                context as Activity,
+                Manifest.permission.POST_NOTIFICATIONS
+            )
+        ) {
+            currentToast?.cancel()
+            currentToast = Toast.makeText(
+                context,
+                permissionDeniedString,
+                Toast.LENGTH_SHORT
+            ).also { it.show() }
+
+            context.startActivity(
+                Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                    .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            )
+        }
+    }
 
     PermissionScreenContent(
         isNotificationGranted = isNotificationGranted,
@@ -92,15 +128,27 @@ fun PermissionScreen(onContinue: () -> Unit) {
         onShowCloseButton = {
             if (!isCloseButtonVisible) isCloseButtonVisible = true
         },
-        onContinueButtonClick = onContinue,
-        onClose = onContinue,
+        onContinueClick = onContinue,
         onRequestNotification = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            when {
+                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    )
+                }
+                else -> notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         },
         onRequestExactAlarm = {
-            context.startActivity(Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM))
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                context.startActivity(
+                    Intent(
+                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                        "package:${context.packageName}".toUri()
+                    )
+                )
+            }
         }
     )
 }
@@ -112,26 +160,38 @@ private fun PermissionScreenContent(
     isCloseButtonVisible: Boolean,
     isContinueButtonEnabled: Boolean,
     onShowCloseButton: () -> Unit,
-    onContinueButtonClick: () -> Unit,
-    onClose: () -> Unit,
+    onContinueClick: () -> Unit,
     onRequestNotification: () -> Unit,
     onRequestExactAlarm: () -> Unit,
 ) {
     val layoutDirection = LocalLayoutDirection.current
-    val items = listOf(
-        PermissionItem(
-            title = stringResource(R.string.notification_permission),
-            isGranted = isNotificationGranted,
-            onClick = onRequestNotification
-        ),
-        PermissionItem(
-            title = stringResource(R.string.schedule_exact_alarms),
-            isGranted = isAlarmGranted,
-            onClick = onRequestExactAlarm
-        )
-    )
+    val notificationTitle = stringResource(R.string.notification_permission)
+    val alarmTitle = stringResource(R.string.schedule_exact_alarms)
 
-    Scaffold(containerColor = colorScheme.surfaceContainer) { padding ->
+    val items = remember(isNotificationGranted, isAlarmGranted, notificationTitle, alarmTitle) {
+        listOf(
+            PermissionItem(
+                title = notificationTitle,
+                isGranted = isNotificationGranted,
+                onClick = {
+                    onShowCloseButton()
+                    onRequestNotification()
+                }
+            ),
+            PermissionItem(
+                title = alarmTitle,
+                isGranted = isAlarmGranted,
+                onClick = {
+                    onShowCloseButton()
+                    onRequestExactAlarm()
+                }
+            )
+        )
+    }
+
+    Scaffold(
+        containerColor = colorScheme.surfaceContainer
+    ) { padding ->
         BoxWithConstraints(
             modifier = Modifier.fillMaxSize()
         ) {
@@ -152,7 +212,7 @@ private fun PermissionScreenContent(
                         )
                 ) {
                     PermissionCloseButton(
-                        onClose = onClose,
+                        onClose = onContinueClick,
                         isVisible = isCloseButtonVisible
                     )
 
@@ -170,14 +230,7 @@ private fun PermissionScreenContent(
 
                         Spacer(modifier = Modifier.height(32.dp))
 
-                        PermissionItemsList(
-                            items = items.map { item ->
-                                item.copy(onClick = {
-                                    onShowCloseButton()
-                                    item.onClick()
-                                })
-                            }
-                        )
+                        PermissionItemsList(items = items)
                     }
                 }
 
@@ -192,7 +245,7 @@ private fun PermissionScreenContent(
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                 ) {
                     Button(
-                        onClick = onContinueButtonClick,
+                        onClick = onContinueClick,
                         modifier = Modifier.styleable {
                             height(ButtonDefaults.MediumContainerHeight)
                             fillWidth()
@@ -223,8 +276,7 @@ private fun PermissionScreenPreview() {
             isContinueButtonEnabled = true,
             isCloseButtonVisible = true,
             onShowCloseButton = { },
-            onContinueButtonClick = { },
-            onClose = { },
+            onContinueClick = { },
             onRequestNotification = { },
             onRequestExactAlarm = { }
         )

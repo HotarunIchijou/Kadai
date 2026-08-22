@@ -24,6 +24,7 @@ import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberNavBackStack
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import kotlinx.coroutines.android.awaitFrame
 import org.kaorun.kadai.ui.screens.main.MainScreen
 import org.kaorun.kadai.ui.screens.permission.PermissionScreen
 import org.kaorun.kadai.ui.screens.task.TaskScreen
@@ -85,7 +86,8 @@ fun Navigation(
                         onCompleteOnboarding()
                         backStack.clear()
                         backStack.add(MainRoute)
-                    }
+                    },
+                    canGoBack = backStack.size > 1
                 )
             }
 
@@ -97,6 +99,9 @@ fun Navigation(
                         } else {
                             backStack.add(AddTaskRoute())
                         }
+                    },
+                    onPermissionCardClick = {
+                        backStack.add(PermissionRoute)
                     }
                 )
             }
@@ -106,6 +111,8 @@ fun Navigation(
                 val focusRequester = remember { FocusRequester() }
 
                 LaunchedEffect(Unit) {
+                    viewModel.load(null)
+                    awaitFrame()
                     focusRequester.requestFocus()
                 }
 

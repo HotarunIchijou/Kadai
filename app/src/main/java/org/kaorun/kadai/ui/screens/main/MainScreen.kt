@@ -49,19 +49,22 @@ import org.kaorun.kadai.ui.screens.main.components.FloatingToolbar
 import org.kaorun.kadai.ui.screens.main.components.ModalWideNavigationRail
 import org.kaorun.kadai.ui.screens.main.components.TaskList
 import org.kaorun.kadai.ui.screens.main.components.TopAppBar
+import org.kaorun.kadai.ui.screens.permission.utils.rememberPermissionsGranted
 import org.kaorun.kadai.ui.theme.KadaiTheme
 
 @Composable
 fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
     onNavigateToTask: (Long?) -> Unit,
+    onPermissionCardClick: () -> Unit
 ) {
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
     MainScreenContent(
         tasks = tasks,
         onNavigateToTask = onNavigateToTask,
         onCheck = viewModel::onTaskCheck,
-        onSearchQueryChange = viewModel::onSearchQueryChange
+        onSearchQueryChange = viewModel::onSearchQueryChange,
+        onPermissionCardClick = onPermissionCardClick,
     )
 }
 
@@ -70,11 +73,12 @@ fun MainScreenContent(
     tasks: List<Task>,
     onNavigateToTask: (Long?) -> Unit,
     onCheck: (Task, Boolean) -> Unit,
-    onSearchQueryChange: (String) -> Unit
+    onSearchQueryChange: (String) -> Unit,
+    onPermissionCardClick: () -> Unit
 ) {
     val navigationRailState = rememberWideNavigationRailState()
     val scope = rememberCoroutineScope()
-    val layoutDirection = LocalLayoutDirection.current
+    val permissionsGranted = rememberPermissionsGranted()
     val pagerState = rememberPagerState(pageCount = { 2 })
 
     ModalWideNavigationRail(navigationRailState = navigationRailState)
@@ -137,12 +141,13 @@ fun MainScreenContent(
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { innerPadding ->
         val listContentPadding = PaddingValues(
-            start = 16.dp + innerPadding.calculateStartPadding(layoutDirection),
+            start = 16.dp +
+                    innerPadding.calculateStartPadding(LocalLayoutDirection.current),
             top = innerPadding.calculateTopPadding() + 16.dp,
-            end = 16.dp + innerPadding.calculateEndPadding(layoutDirection),
+            end = 16.dp +
+                    innerPadding.calculateEndPadding(LocalLayoutDirection.current),
             bottom = innerPadding.calculateBottomPadding() + 16.dp
         )
-
         HorizontalPager(
             state = pagerState,
             verticalAlignment = Alignment.Top,
@@ -151,15 +156,19 @@ fun MainScreenContent(
             when (page) {
                 0 -> TaskList(
                     tasks = remember(tasks) { tasks.filter { !it.isCompleted } },
+                    showPermissionCard = !permissionsGranted,
                     contentPadding = listContentPadding,
                     onClick = { task -> onNavigateToTask(task.id) },
-                    onCheck = onCheck
+                    onCheck = onCheck,
+                    onPermissionCardClick = onPermissionCardClick
                 )
                 1 -> TaskList(
                     tasks = remember(tasks) { tasks.filter { it.isCompleted } },
+                    showPermissionCard = !permissionsGranted,
                     contentPadding = listContentPadding,
                     onClick = { task -> onNavigateToTask(task.id) },
-                    onCheck = onCheck
+                    onCheck = onCheck,
+                    onPermissionCardClick = onPermissionCardClick
                 )
             }
         }
@@ -181,6 +190,7 @@ private fun MainScreenContentPreview() {
         MainScreenContent(
             tasks = tasks,
             onNavigateToTask = { },
+            onPermissionCardClick = { },
             onCheck = { _, _ -> },
             onSearchQueryChange = {_ -> }
         )
