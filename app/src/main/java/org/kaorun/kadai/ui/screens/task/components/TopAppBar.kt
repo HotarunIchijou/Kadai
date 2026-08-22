@@ -41,7 +41,8 @@ fun TopAppBar(
     onDelete: () -> Unit
 ) {
     TopAppBar(
-        title = {},
+        title = { },
+        modifier = Modifier.padding(start = 16.dp, end = 8.dp),
         navigationIcon = {
             TooltipBox(
                 positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
@@ -57,7 +58,6 @@ fun TopAppBar(
                 IconButton(
                     onClick = { onBack() },
                     shapes = IconButtonDefaults.shapes(),
-                    modifier = Modifier.padding(start = 8.dp),
                     colors = IconButtonDefaults.iconButtonColors(
                         containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         contentColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -96,7 +96,7 @@ private fun MenuButton(
         ),
         tooltip = {
             PlainTooltip {
-                Text(stringResource(R.string.open_menu))
+                Text(stringResource(R.string.Menu))
             }
         },
         state = rememberTooltipState()
@@ -116,7 +116,7 @@ private fun MenuButton(
         ) {
             Icon(
                 imageVector = more_vert,
-                contentDescription = stringResource(R.string.open_menu)
+                contentDescription = stringResource(R.string.Menu)
             )
         }
     }

@@ -31,6 +31,7 @@ import org.kaorun.kadai.ui.icons.close
 
 fun ButtonGroupScope.buttonGroupToggleItem(
     onClick: () -> Unit,
+    enabled: Boolean = true,
     imageVector: ImageVector,
     text: String,
     isChecked: Boolean = false
@@ -47,6 +48,7 @@ fun ButtonGroupScope.buttonGroupToggleItem(
             }
             ToggleButton(
                 checked = isChecked,
+                enabled = enabled,
                 onCheckedChange = { onClick() },
                 interactionSource = interactionSource,
                 colors = FilledTonalToggleButtonDefaults.filledTonalToggleButtonColors(),

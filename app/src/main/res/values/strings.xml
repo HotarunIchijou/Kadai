@@ -20,7 +20,7 @@
     <string name="close">Close</string>
     <string name="mark_as_completed">Mark as completed</string>
     <string name="unmark_as_completed">Unmark as completed</string>
-    <string name="open_menu">Open menu</string>
+    <string name="Menu">Menu</string>
     <string name="delete">Delete</string>
     <string name="tasks">Tasks</string>
     <string name="settings">Settings</string>
@@ -39,4 +39,7 @@
     <string name="error_icon">Error icon</string>
     <string name="permissions_missing_title">Required permissions are missing</string>
     <string name="notification_permission_denied">Notification permission denied</string>
+    <string name="snackbar_message_completed">Task has been completed</string>
+    <string name="snackbar_message_uncompleted">Task marked as uncompleted</string>
+    <string name="undo">Undo</string>
 </resources>

@@ -3,7 +3,6 @@
 package org.kaorun.kadai.ui.screens.permission.components
 
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -20,7 +19,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import org.kaorun.kadai.R
 import org.kaorun.kadai.ui.icons.close
 
@@ -48,9 +46,7 @@ fun PermissionCloseButton(
             onClick = onClose,
             enabled = isVisible,
             shapes = IconButtonDefaults.shapes(),
-            modifier = Modifier
-                .padding(start = 20.dp, top = 8.dp)
-                .alpha(alpha),
+            modifier = Modifier.alpha(alpha),
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant

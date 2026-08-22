@@ -35,6 +35,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.kaorun.kadai.R
 import org.kaorun.kadai.ui.icons.calendar_month
 import org.kaorun.kadai.ui.icons.schedule
+import org.kaorun.kadai.ui.screens.permission.utils.rememberPermissionsGranted
 import org.kaorun.kadai.ui.screens.task.components.DatePicker
 import org.kaorun.kadai.ui.screens.task.components.ExtendedFloatingActionButton
 import org.kaorun.kadai.ui.screens.task.components.TextField
@@ -97,6 +98,7 @@ fun TaskScreenContent(
     val dateTime = remember(timestamp) {
         timestamp?.let { Instant.ofEpochMilli(it).atZone(ZoneId.systemDefault()) }
     }
+    val permissionsGranted = rememberPermissionsGranted()
     val timePickerState = rememberTimePickerState(
         initialHour = dateTime?.hour ?: LocalTime.now().plusHours(1).hour,
         initialMinute = dateTime?.minute ?: 0
@@ -129,8 +131,7 @@ fun TaskScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(16.dp)
-                .padding(bottom = 88.dp)
+                .padding(horizontal = 28.dp, vertical = 16.dp)
                 .padding(padding)
         ) {
             TextField(
@@ -167,6 +168,7 @@ fun TaskScreenContent(
             ) {
                 buttonGroupToggleItem(
                     onClick = { isDialogTimeVisible = true },
+                    enabled = permissionsGranted,
                     imageVector = schedule,
                     text = timeString,
                     isChecked = isTimeChecked

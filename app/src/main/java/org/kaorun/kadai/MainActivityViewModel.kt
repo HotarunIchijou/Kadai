@@ -14,6 +14,11 @@ import org.kaorun.kadai.ui.navigation.NavRoute
 import org.kaorun.kadai.ui.navigation.PermissionRoute
 import javax.inject.Inject
 
+sealed interface MainActivityUiState {
+    data object Loading : MainActivityUiState
+    data class Success(val startRoute: NavRoute) : MainActivityUiState
+}
+
 @HiltViewModel
 class MainActivityViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
@@ -35,9 +40,4 @@ class MainActivityViewModel @Inject constructor(
             userPreferencesRepository.setOnboardingCompleted(true)
         }
     }
-}
-
-sealed interface MainActivityUiState {
-    data object Loading : MainActivityUiState
-    data class Success(val startRoute: NavRoute) : MainActivityUiState
 }

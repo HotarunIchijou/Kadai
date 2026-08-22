@@ -23,7 +23,6 @@ import org.kaorun.kadai.ui.theme.KadaiTheme
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-
     private val viewModel: MainActivityViewModel by viewModels()
     private var deepLinkRoute by mutableStateOf<NavRoute?>(null)
 
@@ -51,8 +50,8 @@ class MainActivity : ComponentActivity() {
                         is MainActivityUiState.Success -> {
                             Navigation(
                                 startRoute = state.startRoute,
-                                onCompleteOnboarding = viewModel::completeOnboarding,
-                                initialDeepLink = deepLinkRoute
+                                initialDeepLink = deepLinkRoute,
+                                onCompleteOnboarding = viewModel::completeOnboarding
                             )
                         }
                     }

@@ -18,6 +18,7 @@ class UserPreferencesRepository @Inject constructor(
 ) {
     private object PreferencesKeys {
         val ONBOARDING_COMPLETED = booleanPreferencesKey("onboarding_completed")
+        val PERMISSION_CARD_DISMISSED = booleanPreferencesKey("permission_card_dismissed")
     }
 
     val isOnboardingCompleted: Flow<Boolean> = dataStore.data
@@ -31,6 +32,20 @@ class UserPreferencesRepository @Inject constructor(
     suspend fun setOnboardingCompleted(completed: Boolean = true) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ONBOARDING_COMPLETED] = completed
+        }
+    }
+
+    val isPermissionCardDismissed: Flow<Boolean> = dataStore.data
+        .catch { exception ->
+            if (exception is IOException) emit(emptyPreferences()) else throw exception
+        }
+        .map { preferences ->
+            preferences[PreferencesKeys.PERMISSION_CARD_DISMISSED] ?: false
+        }
+
+    suspend fun setPermissionCardDismissed(dismissed: Boolean = true) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.PERMISSION_CARD_DISMISSED] = dismissed
         }
     }
 }

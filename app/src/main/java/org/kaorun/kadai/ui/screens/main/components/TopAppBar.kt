@@ -125,7 +125,7 @@ fun TopAppBar(
             state = searchBarState,
             inputField = inputField,
             navigationIcon = {
-                TopAppBarIcon(
+                TopAppBarIconButton(
                     onClick = {
                         scope.launch {
                             if (navigationRailState.targetValue == WideNavigationRailValue.Expanded)
@@ -140,7 +140,7 @@ fun TopAppBar(
                 )
             },
             actions = {
-                TopAppBarIcon(
+                TopAppBarIconButton(
                     onClick = {  },
                     imageVector = filter_list,
                     contentDescription = stringResource(R.string.filter),
@@ -205,7 +205,7 @@ private fun SearchBarIcon(
     }
 
 @Composable
-private fun TopAppBarIcon(
+private fun TopAppBarIconButton(
     onClick: () -> Unit,
     imageVector: ImageVector,
     contentDescription: String,
@@ -229,13 +229,30 @@ private fun TopAppBarIcon(
             targetOffset = offset
         )
     ) {
-        IconButton(
-            onClick = onClick,
-            colors = IconButtonDefaults.iconButtonColors(
-                contentColor = colorScheme.onSurfaceVariant
-            )
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                TooltipAnchorPosition.Below
+            ),
+            tooltip = {
+                PlainTooltip(
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                        paneTitle = contentDescription
+                    }
+                ) {
+                    Text(contentDescription)
+                }
+            },
+            state = rememberTooltipState()
         ) {
-            Icon(imageVector = imageVector, contentDescription = contentDescription)
+            IconButton(
+                onClick = onClick,
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = colorScheme.onSurfaceVariant
+                )
+            ) {
+                Icon(imageVector = imageVector, contentDescription = contentDescription)
+            }
         }
     }
 }

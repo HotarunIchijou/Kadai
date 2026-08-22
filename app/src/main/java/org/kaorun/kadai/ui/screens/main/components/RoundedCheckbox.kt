@@ -3,7 +3,6 @@ package org.kaorun.kadai.ui.screens.main.components
 import androidx.compose.animation.animateColor
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.snap
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.updateTransition
 import androidx.compose.foundation.Canvas
@@ -42,17 +41,23 @@ fun RoundedCheckbox(
     val transition = updateTransition(targetState = checked, label = "checkbox")
 
     val checkboxColor by transition.animateColor(
-        transitionSpec = { tween(durationMillis = 150) },
+        transitionSpec = {
+            if (false isTransitioningTo true) {
+                tween(durationMillis = 150)
+            } else {
+                tween(durationMillis = 180, delayMillis = 50)
+            }
+        },
         label = "checkboxColor"
-    ) { checked ->
-        if (checked) MaterialTheme.colorScheme.primary else Color.Transparent
+    ) { isChecked ->
+        if (isChecked) MaterialTheme.colorScheme.primary else Color.Transparent
     }
 
     val borderColor by transition.animateColor(
-        transitionSpec = { tween(durationMillis = 150) },
+        transitionSpec = { tween(durationMillis = 180) },
         label = "borderColor"
-    ) { checked ->
-        if (checked) MaterialTheme.colorScheme.primary
+    ) { isChecked ->
+        if (isChecked) MaterialTheme.colorScheme.primary
         else MaterialTheme.colorScheme.onSurfaceVariant
     }
 
@@ -63,12 +68,12 @@ fun RoundedCheckbox(
             if (false isTransitioningTo true) {
                 tween(durationMillis = 200, easing = FastOutSlowInEasing)
             } else {
-                snap(delayMillis = 100)
+                tween(durationMillis = 160, easing = FastOutSlowInEasing)
             }
         },
         label = "checkDrawFraction"
-    ) { checked ->
-        if (checked) 1f else 0f
+    ) { isChecked ->
+        if (isChecked) 1f else 0f
     }
 
     val strokeWidthPx = with(LocalDensity.current) { 2.dp.toPx() }
@@ -107,8 +112,7 @@ private fun DrawScope.drawCheck(
     stroke: Stroke,
     drawingCache: CheckDrawingCache,
 ) {
-    if (checkFraction == 0f) return
-
+    if (checkFraction <= 0f) return
     val width = size.width
 
     val checkCrossX = 0.4f
@@ -120,13 +124,18 @@ private fun DrawScope.drawCheck(
 
     with(drawingCache) {
         checkPath.rewind()
-        checkPath.moveTo(width * leftX, width * leftY)
-        checkPath.lineTo(width * checkCrossX, width * checkCrossY)
-        checkPath.lineTo(width * rightX, width * rightY)
+        checkPath.moveTo(x = width * leftX, y = width * leftY)
+        checkPath.lineTo(x = width * checkCrossX, y = width * checkCrossY)
+        checkPath.lineTo(x = width * rightX, y = width * rightY)
 
-        pathMeasure.setPath(checkPath, false)
+        pathMeasure.setPath(checkPath, forceClosed = false)
         pathToDraw.rewind()
-        pathMeasure.getSegment(0f, pathMeasure.length * checkFraction, pathToDraw, true)
+        pathMeasure.getSegment(
+            startDistance = 0f,
+            stopDistance = pathMeasure.length * checkFraction,
+            destination = pathToDraw,
+            startWithMoveTo = true
+        )
     }
 
     drawPath(drawingCache.pathToDraw, checkColor, style = stroke)

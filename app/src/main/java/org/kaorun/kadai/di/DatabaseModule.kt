@@ -1,6 +1,8 @@
 package org.kaorun.kadai.di
 
 import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
 import androidx.room.Room
 import org.kaorun.kadai.data.TaskDao
 import org.kaorun.kadai.data.TaskDatabase
@@ -10,6 +12,7 @@ import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import org.kaorun.kadai.data.repository.UserPreferencesRepository
 import org.kaorun.kadai.reminder.data.ScheduledNotificationDao
 import org.kaorun.kadai.reminder.data.ScheduledNotificationRepository
 import javax.inject.Singleton
@@ -36,6 +39,12 @@ object DatabaseModule {
     fun provideTaskRepository(dao: TaskDao): TaskRepository = TaskRepository(dao)
 
     @Provides
-    fun provideScheduledNotificationRepository(dao: ScheduledNotificationDao) =
-        ScheduledNotificationRepository(dao)
+    fun provideScheduledNotificationRepository(
+        dao: ScheduledNotificationDao
+    ): ScheduledNotificationRepository = ScheduledNotificationRepository(dao)
+
+    @Provides
+    fun provideUserPreferencesRepository(
+        dataStore: DataStore<Preferences>
+    ): UserPreferencesRepository = UserPreferencesRepository(dataStore)
 }

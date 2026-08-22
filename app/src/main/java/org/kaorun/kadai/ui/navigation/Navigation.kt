@@ -34,9 +34,9 @@ import org.kaorun.kadai.ui.screens.task.TaskViewModel
 @Composable
 fun Navigation(
     startRoute: NavRoute,
+    initialDeepLink: NavRoute? = null,
     onCompleteOnboarding: () -> Unit,
-    initialDeepLink: NavRoute? = null
-) {
+    ) {
     val initialStack: Array<NavKey> = remember(initialDeepLink, startRoute) {
         when {
             initialDeepLink != null -> DeepLinkParser.buildSyntheticBackStack(initialDeepLink)

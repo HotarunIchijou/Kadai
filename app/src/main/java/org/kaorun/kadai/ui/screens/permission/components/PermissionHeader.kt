@@ -32,6 +32,8 @@ fun PermissionHeader(
 ) {
     val primaryContainer = colorScheme.primaryContainer
 
+    Spacer(modifier = Modifier.height(32.dp))
+
     Box(
         modifier = modifier
             .drawWithCache {

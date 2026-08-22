@@ -211,10 +211,12 @@ private fun PermissionScreenContent(
                             end = padding.calculateEndPadding(layoutDirection)
                         )
                 ) {
-                    PermissionCloseButton(
-                        onClose = onContinueClick,
-                        isVisible = isCloseButtonVisible
-                    )
+                    Box(modifier = Modifier.padding(start = 20.dp, top = 8.dp)) {
+                        PermissionCloseButton(
+                            onClose = onContinueClick,
+                            isVisible = isCloseButtonVisible
+                        )
+                    }
 
                     Column(
                         modifier = Modifier
