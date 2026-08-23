@@ -48,6 +48,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
 import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.TaskSortBy
+import org.kaorun.kadai.data.TaskSortConfig
 import org.kaorun.kadai.ui.icons.add_task
 import org.kaorun.kadai.ui.icons.done_all
 import org.kaorun.kadai.ui.icons.filled.list_filled
@@ -66,15 +68,18 @@ fun MainScreen(
     onPermissionCardClick: () -> Unit
 ) {
     val tasks by viewModel.tasks.collectAsStateWithLifecycle()
+    val sortConfig by viewModel.sortConfig.collectAsStateWithLifecycle()
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
     val isPermissionCardDismissed by viewModel.isPermissionCardDismissed.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     MainScreenContent(
         tasks = tasks,
+        sortConfig = sortConfig,
         snackbarMessage = snackbarMessage,
         snackbarHostState = snackbarHostState,
         onNavigateToTask = onNavigateToTask,
+        onSortByClick = viewModel::onSortByClick,
         onCheck = viewModel::onTaskCheck,
         onUndo = viewModel::onUndoSnackbar,
         setSnackbarShown = viewModel::snackbarMessageShown,
@@ -88,8 +93,10 @@ fun MainScreen(
 @Composable
 fun MainScreenContent(
     tasks: List<Task>,
+    sortConfig: TaskSortConfig,
     snackbarMessage: MainViewModel.TaskSnackbarMessage?,
     snackbarHostState: SnackbarHostState,
+    onSortByClick: (TaskSortBy) -> Unit,
     onNavigateToTask: (Long?) -> Unit,
     onCheck: (Task, Boolean) -> Unit,
     onUndo: (Task, Boolean) -> Unit,
@@ -133,6 +140,8 @@ fun MainScreenContent(
         topBar = {
             TopAppBar(
                 navigationRailState = navigationRailState,
+                sortConfig = sortConfig,
+                onSortByClick = onSortByClick,
                 onSearch = onSearchQueryChange
             )
         },
@@ -261,8 +270,10 @@ private fun MainScreenContentPreview() {
     KadaiTheme {
         MainScreenContent(
             tasks = tasks,
+            sortConfig = TaskSortConfig(),
             snackbarMessage = null,
             snackbarHostState = SnackbarHostState(),
+            onSortByClick = { },
             onNavigateToTask = { },
             onCheck = { _, _ -> },
             onUndo = { _, _ -> },

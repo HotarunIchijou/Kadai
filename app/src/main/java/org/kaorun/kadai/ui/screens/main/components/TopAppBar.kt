@@ -8,12 +8,15 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.AppBarWithSearchColors
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -38,7 +41,12 @@ import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -50,21 +58,30 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
+import org.kaorun.kadai.ui.icons.swap_vert
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
+import org.kaorun.kadai.data.SortDirection
+import org.kaorun.kadai.data.TaskSortBy
+import org.kaorun.kadai.data.TaskSortConfig
 import org.kaorun.kadai.ui.icons.arrow_back
+import org.kaorun.kadai.ui.icons.arrow_downward_alt
+import org.kaorun.kadai.ui.icons.arrow_upward_alt
 import org.kaorun.kadai.ui.icons.close
-import org.kaorun.kadai.ui.icons.filter_list
 import org.kaorun.kadai.ui.icons.menu
 
 @Composable
 fun TopAppBar(
     navigationRailState: WideNavigationRailState,
-    onSearch: (String) -> Unit
+    sortConfig: TaskSortConfig,
+    onSortByClick: (TaskSortBy) -> Unit,
+    onSearch: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
     val searchBarState = rememberContainedSearchBarState()
     val textFieldState = rememberTextFieldState()
+    var sortMenuExpanded by rememberSaveable { mutableStateOf(false) }
+
     val inputField = @Composable {
         SearchBarDefaults.InputField(
             textFieldState = textFieldState,
@@ -140,13 +157,22 @@ fun TopAppBar(
                 )
             },
             actions = {
-                TopAppBarIconButton(
-                    onClick = {  },
-                    imageVector = filter_list,
-                    contentDescription = stringResource(R.string.filter),
-                    isStart = false,
-                    isVisible = searchBarState.targetValue == SearchBarValue.Collapsed
-                )
+                Box {
+                    TopAppBarIconButton(
+                        onClick = { sortMenuExpanded = true },
+                        imageVector = swap_vert,
+                        contentDescription = stringResource(R.string.sort_by),
+                        isStart = false,
+                        isVisible = searchBarState.targetValue == SearchBarValue.Collapsed
+                    )
+
+                    SortMenu(
+                        expanded = sortMenuExpanded,
+                        sortConfig = sortConfig,
+                        onSortByClick = onSortByClick,
+                        onDismissRequest = { sortMenuExpanded = false }
+                    )
+                }
             },
             colors = AppBarWithSearchColors(
                 searchBarColors = SearchBarDefaults.colors(
@@ -172,12 +198,59 @@ fun TopAppBar(
 }
 
 @Composable
+private fun SortMenu(
+    expanded: Boolean,
+    sortConfig: TaskSortConfig,
+    onSortByClick: (TaskSortBy) -> Unit,
+    onDismissRequest: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val dateCreatedString = stringResource(R.string.date_created)
+    val dateReminderString = stringResource(R.string.date_reminder)
+    val titleString = stringResource(R.string.title)
+    val sortOptions = remember {
+        listOf(
+            TaskSortBy.DATE_CREATED to dateCreatedString,
+            TaskSortBy.DATE_REMINDER to dateReminderString,
+            TaskSortBy.TITLE to titleString
+        )
+    }
+
+    DropdownMenu(
+        expanded = expanded,
+        onDismissRequest = onDismissRequest,
+        modifier = modifier
+    ) {
+        sortOptions.forEach { (field, label) ->
+            val isSelected = sortConfig.sortBy == field
+            DropdownMenuItem(
+                text = { Text(label) },
+                onClick = {
+                    onSortByClick(field)
+                    onDismissRequest()
+                },
+                trailingIcon = if (isSelected) {
+                    {
+                        val isAsc = sortConfig.direction == SortDirection.ASCENDING
+                        Icon(
+                            imageVector = if (isAsc) arrow_upward_alt else arrow_downward_alt,
+                            contentDescription = if (isAsc) "Ascending" else "Descending"
+                        )
+                    }
+                } else null
+            )
+        }
+    }
+}
+
+@Composable
 private fun SearchBarIcon(
     onClick: () -> Unit,
     imageVector: ImageVector,
     contentDescription: String,
-    isVisible: Boolean
-) = AnimatedVisibility(
+    isVisible: Boolean,
+) {
+    AnimatedVisibility(
         visible = isVisible,
         enter = fadeIn(animationSpec = motionScheme.fastEffectsSpec()),
         exit = fadeOut(animationSpec = motionScheme.fastEffectsSpec())
@@ -203,6 +276,7 @@ private fun SearchBarIcon(
             }
         }
     }
+}
 
 @Composable
 private fun TopAppBarIconButton(

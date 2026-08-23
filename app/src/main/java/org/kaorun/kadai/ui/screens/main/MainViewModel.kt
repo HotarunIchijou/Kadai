@@ -12,7 +12,10 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
+import org.kaorun.kadai.data.SortDirection
 import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.TaskSortBy
+import org.kaorun.kadai.data.TaskSortConfig
 import org.kaorun.kadai.data.repository.TaskRepository
 import org.kaorun.kadai.data.repository.UserPreferencesRepository
 import java.util.UUID
@@ -23,7 +26,6 @@ class MainViewModel @Inject constructor(
     private val repository: TaskRepository,
     private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
-
     data class TaskSnackbarMessage(
         val id: Long,
         @param:StringRes val messageResId: Int,
@@ -42,19 +44,74 @@ class MainViewModel @Inject constructor(
             initialValue = false
         )
 
-    val tasks: StateFlow<List<Task>> = repository.allTasks
-        .combine(_searchQuery) { tasks, query ->
-            if (query.isBlank()) tasks
-            else tasks.filter { task ->
-                task.title.contains(query, ignoreCase = true) ||
-                        task.details.orEmpty().contains(query, ignoreCase = true)
-            }
-        }
+    val sortConfig: StateFlow<TaskSortConfig> = userPreferencesRepository.sortConfig
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = TaskSortConfig()
         )
+
+    val tasks: StateFlow<List<Task>> = combine(
+        repository.allTasks,
+        _searchQuery,
+        sortConfig
+    ) { tasks, query, config ->
+            val filtered = if (query.isBlank()) tasks
+            else tasks.filter { task ->
+                task.title.contains(query, ignoreCase = true) ||
+                task.details.orEmpty().contains(query, ignoreCase = true)
+            }
+
+        when (config.sortBy) {
+            TaskSortBy.DATE_CREATED -> when (config.direction) {
+                SortDirection.ASCENDING -> filtered.sortedBy { it.id }
+                SortDirection.DESCENDING -> filtered.sortedByDescending { it.id }
+            }
+
+            TaskSortBy.TITLE -> {
+                val comparator = compareBy(
+                    comparator = String.CASE_INSENSITIVE_ORDER,
+                    selector = Task::title
+                )
+
+                when (config.direction) {
+                    SortDirection.ASCENDING -> filtered.sortedWith(comparator)
+                    SortDirection.DESCENDING -> filtered.sortedWith(comparator.reversed())
+                }
+            }
+
+            TaskSortBy.DATE_REMINDER -> {
+                when (config.direction) {
+                    SortDirection.ASCENDING -> filtered.sortedWith(
+                        compareBy<Task> { it.timestamp == null }
+                            .thenBy { it.timestamp }
+                            .thenBy { it.id }
+                    )
+                    SortDirection.DESCENDING -> filtered.sortedWith(
+                        compareBy<Task> { it.timestamp == null }
+                            .thenByDescending { it.timestamp }
+                            .thenByDescending { it.id }
+                    )
+                }
+            }
+        }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyList()
+    )
+
+    fun onSortByClick(sortBy: TaskSortBy) {
+        viewModelScope.launch {
+            val current = sortConfig.value
+            val newDirection = if (current.sortBy == sortBy) {
+                current.direction.toggle()
+            } else {
+                if (sortBy == TaskSortBy.TITLE) SortDirection.ASCENDING else SortDirection.DESCENDING
+            }
+            userPreferencesRepository.updateSortConfig(TaskSortConfig(sortBy, newDirection))
+        }
+    }
 
     fun onTaskCheck(task: Task, isCompleted: Boolean) {
         val messageResId = if (isCompleted) R.string.snackbar_message_completed

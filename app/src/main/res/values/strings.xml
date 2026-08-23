@@ -42,4 +42,7 @@
     <string name="snackbar_message_completed">Task has been completed</string>
     <string name="snackbar_message_uncompleted">Task marked as uncompleted</string>
     <string name="undo">Undo</string>
+    <string name="date_created">Date created</string>
+    <string name="date_reminder">Due date</string>
+    <string name="sort_by">Sort by</string>
 </resources>
