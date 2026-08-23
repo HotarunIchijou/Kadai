@@ -8,15 +8,20 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideIn
 import androidx.compose.animation.slideOut
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.AppBarWithSearch
 import androidx.compose.material3.AppBarWithSearchColors
-import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuGroup
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.DropdownMenuPopup
 import androidx.compose.material3.ExpandedFullScreenContainedSearchBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
@@ -26,6 +31,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.motionScheme
+import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.SearchBarDefaults
 import androidx.compose.material3.SearchBarDefaults.appBarWithSearchColors
@@ -58,7 +64,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
-import org.kaorun.kadai.ui.icons.swap_vert
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
 import org.kaorun.kadai.data.SortDirection
@@ -69,6 +74,7 @@ import org.kaorun.kadai.ui.icons.arrow_downward_alt
 import org.kaorun.kadai.ui.icons.arrow_upward_alt
 import org.kaorun.kadai.ui.icons.close
 import org.kaorun.kadai.ui.icons.menu
+import org.kaorun.kadai.ui.icons.swap_vert
 
 @Composable
 fun TopAppBar(
@@ -202,13 +208,12 @@ private fun SortMenu(
     expanded: Boolean,
     sortConfig: TaskSortConfig,
     onSortByClick: (TaskSortBy) -> Unit,
-    onDismissRequest: () -> Unit,
-    modifier: Modifier = Modifier
+    onDismissRequest: () -> Unit
 ) {
     val dateCreatedString = stringResource(R.string.date_created)
     val dateReminderString = stringResource(R.string.date_reminder)
     val titleString = stringResource(R.string.title)
-    val sortOptions = remember {
+    val sortOptions = remember(dateCreatedString, dateReminderString, titleString) {
         listOf(
             TaskSortBy.DATE_CREATED to dateCreatedString,
             TaskSortBy.DATE_REMINDER to dateReminderString,
@@ -216,29 +221,43 @@ private fun SortMenu(
         )
     }
 
-    DropdownMenu(
+    DropdownMenuPopup(
         expanded = expanded,
-        onDismissRequest = onDismissRequest,
-        modifier = modifier
+        onDismissRequest = onDismissRequest
     ) {
-        sortOptions.forEach { (field, label) ->
-            val isSelected = sortConfig.sortBy == field
-            DropdownMenuItem(
-                text = { Text(label) },
-                onClick = {
-                    onSortByClick(field)
-                    onDismissRequest()
-                },
-                trailingIcon = if (isSelected) {
-                    {
-                        val isAsc = sortConfig.direction == SortDirection.ASCENDING
-                        Icon(
-                            imageVector = if (isAsc) arrow_upward_alt else arrow_downward_alt,
-                            contentDescription = if (isAsc) "Ascending" else "Descending"
-                        )
-                    }
-                } else null
-            )
+        DropdownMenuGroup(
+            modifier = Modifier.width(IntrinsicSize.Max),
+            shapes = MenuDefaults.groupShape(0, 1)
+        ) {
+            val itemCount = sortOptions.size
+            sortOptions.forEachIndexed { itemIndex, (field, label) ->
+                val isSelected = sortConfig.sortBy == field
+                DropdownMenuItem(
+                    selected = isSelected,
+                    onClick = {
+                        onSortByClick(field)
+                        onDismissRequest()
+                    },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    text = {
+                        Text(text = label)
+                    },
+                    shapes = MenuDefaults.itemShape(itemIndex, itemCount),
+                    trailingContent = if (isSelected) {
+                        {
+                            val isAsc = sortConfig.direction == SortDirection.ASCENDING
+                            val contentDescription = stringResource(
+                                if (isAsc) R.string.ascending else R.string.descending
+                            )
+                            Icon(
+                                imageVector = if (isAsc) arrow_upward_alt else arrow_downward_alt,
+                                modifier = Modifier.size(MenuDefaults.TrailingIconSize),
+                                contentDescription = contentDescription
+                            )
+                        }
+                    } else null
+                )
+            }
         }
     }
 }

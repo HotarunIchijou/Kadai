@@ -45,4 +45,7 @@
     <string name="date_created">Date created</string>
     <string name="date_reminder">Due date</string>
     <string name="sort_by">Sort by</string>
+    <string name="Selected_icon">Selected</string>
+    <string name="ascending">Ascending</string>
+    <string name="descending">Descending</string>
 </resources>
