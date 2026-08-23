@@ -101,17 +101,11 @@ fun TopAppBar(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
-                AnimatedVisibility(
-                    visible = searchBarState.currentValue == SearchBarValue.Collapsed,
-                    enter = fadeIn(animationSpec = motionScheme.defaultEffectsSpec()),
-                    exit = fadeOut(animationSpec = motionScheme.defaultEffectsSpec())
-                ) {
-                    Text(
-                        modifier = Modifier.clearAndSetSemantics { }.fillMaxWidth(),
-                        text = stringResource(R.string.search),
-                        textAlign = TextAlign.Center
-                    )
-                }
+                Text(
+                    modifier = Modifier.clearAndSetSemantics { }.fillMaxWidth(),
+                    text = stringResource(R.string.search),
+                    textAlign = TextAlign.Center
+                )
             },
             leadingIcon = {
                 SearchBarIcon(

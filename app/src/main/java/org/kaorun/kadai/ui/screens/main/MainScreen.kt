@@ -10,7 +10,9 @@ import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
+import kotlinx.coroutines.CoroutineScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -120,7 +122,7 @@ fun MainScreenContent(
         pagerState,
         pendingListState,
         completedListState,
-        permissionsGranted
+        permissionCardVisible
     ) {
         UndoScrollHandler(
             scope = scope,
@@ -148,49 +150,11 @@ fun MainScreenContent(
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         floatingActionButtonPosition = FabPosition.Center,
         floatingActionButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FloatingToolbar(
-                    onItemSelected = { index ->
-                        scope.launch {
-                            pagerState.animateScrollToPage(index)
-                        }
-                    },
-                    items = mapOf(
-                        list_filled to stringResource(R.string.pending),
-                        done_all to stringResource(R.string.completed)
-                    ),
-                    selectedIndex = pagerState.targetPage
-                )
-
-                val addTaskDescription = stringResource(R.string.add_task)
-                TooltipBox(
-                    positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                        TooltipAnchorPosition.Above
-                    ),
-                    tooltip = {
-                        PlainTooltip(
-                            modifier = Modifier.semantics {
-                                liveRegion = LiveRegionMode.Assertive
-                                paneTitle = addTaskDescription
-                            }
-                        ) {
-                            Text(addTaskDescription)
-                        }
-                    },
-                    state = rememberTooltipState()
-                ) {
-                    FloatingActionButton(
-                        onClick = { onNavigateToTask(null) },
-                        containerColor = MaterialTheme.colorScheme.primaryContainer,
-                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                    ) {
-                        Icon(imageVector = add_task, contentDescription = null)
-                    }
-                }
-            }
+            FloatingBar(
+                pagerState = pagerState,
+                scope = scope,
+                onNavigateToTask = onNavigateToTask
+            )
         },
         containerColor = MaterialTheme.colorScheme.surfaceContainer
     ) { innerPadding ->
@@ -201,6 +165,10 @@ fun MainScreenContent(
             end = 16.dp + innerPadding.calculateEndPadding(layoutDirection),
             bottom = innerPadding.calculateBottomPadding() + 16.dp
         )
+
+        val handleTaskClick = remember(onNavigateToTask) {
+            { task: Task -> onNavigateToTask(task.id) }
+        }
 
         HorizontalPager(
             state = pagerState,
@@ -214,7 +182,7 @@ fun MainScreenContent(
                     state = pendingListState,
                     contentPadding = listContentPadding,
                     showPermissionCard = permissionCardVisible,
-                    onClick = { task -> onNavigateToTask(task.id) },
+                    onClick = handleTaskClick,
                     onCheck = onCheck,
                     onPermissionCardClick = onPermissionCardClick,
                     onPermissionCardCloseClick = onPermissionCardCloseClick
@@ -224,7 +192,7 @@ fun MainScreenContent(
                     state = completedListState,
                     contentPadding = listContentPadding,
                     showPermissionCard = permissionCardVisible,
-                    onClick = { task -> onNavigateToTask(task.id) },
+                    onClick = handleTaskClick,
                     onCheck = onCheck,
                     onPermissionCardClick = onPermissionCardClick,
                     onPermissionCardCloseClick = onPermissionCardCloseClick
@@ -252,6 +220,63 @@ fun MainScreenContent(
             }
 
             setSnackbarShown()
+        }
+    }
+}
+
+@Composable
+private fun FloatingBar(
+    pagerState: PagerState,
+    scope: CoroutineScope,
+    onNavigateToTask: (Long?) -> Unit
+) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        val pendingText = stringResource(R.string.pending)
+        val completedText = stringResource(R.string.completed)
+        val toolbarItems = remember(pendingText, completedText) {
+            mapOf(
+                list_filled to pendingText,
+                done_all to completedText
+            )
+        }
+
+        FloatingToolbar(
+            onItemSelected = { index ->
+                scope.launch {
+                    pagerState.animateScrollToPage(index)
+                }
+            },
+            items = toolbarItems,
+            selectedIndex = pagerState.targetPage
+        )
+
+        val addTaskDescription = stringResource(R.string.add_task)
+        TooltipBox(
+            positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                TooltipAnchorPosition.Above
+            ),
+            tooltip = {
+                PlainTooltip(
+                    modifier = Modifier.semantics {
+                        liveRegion = LiveRegionMode.Assertive
+                        paneTitle = addTaskDescription
+                    }
+                ) {
+                    Text(addTaskDescription)
+                }
+            },
+            state = rememberTooltipState()
+        ) {
+            FloatingActionButton(
+                onClick = { onNavigateToTask(null) },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            ) {
+                Icon(imageVector = add_task, contentDescription = null)
+            }
         }
     }
 }

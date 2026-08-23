@@ -2,6 +2,7 @@
 .gradle
 /.idea/*
 !.idea/codeStyles/
+/.artifacts
 .DS_Store
 /build
 /captures

@@ -1,14 +1,21 @@
+@file:OptIn(FlowPreview::class)
+
 package org.kaorun.kadai.ui.screens.main
 
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
@@ -20,6 +27,7 @@ import org.kaorun.kadai.data.repository.TaskRepository
 import org.kaorun.kadai.data.repository.UserPreferencesRepository
 import java.util.UUID
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -28,7 +36,7 @@ class MainViewModel @Inject constructor(
 ) : ViewModel() {
     data class TaskSnackbarMessage(
         val id: Long,
-        @param:StringRes val messageResId: Int,
+        @StringRes val messageResId: Int,
         val task: Task,
         val previousCompletedState: Boolean
     )
@@ -54,15 +62,18 @@ class MainViewModel @Inject constructor(
 
     val tasks: StateFlow<List<Task>> = combine(
         repository.allTasks,
-        _searchQuery,
+        _searchQuery
+            .debounce(300.milliseconds)
+            .distinctUntilChanged(),
         sortConfig
     ) { tasks, query, config ->
-        val filtered = if (query.isBlank()) {
+        val trimmed = query.trim()
+        val filtered = if (trimmed.isBlank()) {
             tasks
         } else {
             tasks.filter { task ->
-                task.title.contains(query, ignoreCase = true) ||
-                task.details.orEmpty().contains(query, ignoreCase = true)
+                task.title.contains(trimmed, ignoreCase = true) ||
+                task.details.orEmpty().contains(trimmed, ignoreCase = true)
             }
         }
 
@@ -76,7 +87,7 @@ class MainViewModel @Inject constructor(
                 val comparator = compareBy(
                     comparator = String.CASE_INSENSITIVE_ORDER,
                     selector = Task::title
-                )
+                ).thenBy { it.id }
                 when (config.direction) {
                     SortDirection.ASCENDING -> filtered.sortedWith(comparator)
                     SortDirection.DESCENDING -> filtered.sortedWith(comparator.reversed())
@@ -99,7 +110,9 @@ class MainViewModel @Inject constructor(
                 }
             }
         }
-    }.stateIn(
+    }
+    .flowOn(Dispatchers.Default)
+    .stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
