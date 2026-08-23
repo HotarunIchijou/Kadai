@@ -36,6 +36,7 @@ class MainViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
     private val _snackbarMessage = MutableStateFlow<TaskSnackbarMessage?>(null)
     val snackbarMessage: StateFlow<TaskSnackbarMessage?> = _snackbarMessage.asStateFlow()
+
     val isPermissionCardDismissed: StateFlow<Boolean> = userPreferencesRepository
         .isPermissionCardDismissed
         .stateIn(
@@ -56,11 +57,14 @@ class MainViewModel @Inject constructor(
         _searchQuery,
         sortConfig
     ) { tasks, query, config ->
-            val filtered = if (query.isBlank()) tasks
-            else tasks.filter { task ->
+        val filtered = if (query.isBlank()) {
+            tasks
+        } else {
+            tasks.filter { task ->
                 task.title.contains(query, ignoreCase = true) ||
                 task.details.orEmpty().contains(query, ignoreCase = true)
             }
+        }
 
         when (config.sortBy) {
             TaskSortBy.DATE_CREATED -> when (config.direction) {
@@ -73,7 +77,6 @@ class MainViewModel @Inject constructor(
                     comparator = String.CASE_INSENSITIVE_ORDER,
                     selector = Task::title
                 )
-
                 when (config.direction) {
                     SortDirection.ASCENDING -> filtered.sortedWith(comparator)
                     SortDirection.DESCENDING -> filtered.sortedWith(comparator.reversed())
@@ -81,14 +84,15 @@ class MainViewModel @Inject constructor(
             }
 
             TaskSortBy.DATE_REMINDER -> {
+                val nullsLast = compareBy<Task> { it.timestamp == null }
                 when (config.direction) {
                     SortDirection.ASCENDING -> filtered.sortedWith(
-                        compareBy<Task> { it.timestamp == null }
-                            .thenBy { it.timestamp }
-                            .thenBy { it.id }
+                        nullsLast
+                            .thenBy { it.timestamp
+                            }.thenBy { it.id }
                     )
                     SortDirection.DESCENDING -> filtered.sortedWith(
-                        compareBy<Task> { it.timestamp == null }
+                        nullsLast
                             .thenByDescending { it.timestamp }
                             .thenByDescending { it.id }
                     )
@@ -103,13 +107,8 @@ class MainViewModel @Inject constructor(
 
     fun onSortByClick(sortBy: TaskSortBy) {
         viewModelScope.launch {
-            val current = sortConfig.value
-            val newDirection = if (current.sortBy == sortBy) {
-                current.direction.toggle()
-            } else {
-                if (sortBy == TaskSortBy.TITLE) SortDirection.ASCENDING else SortDirection.DESCENDING
-            }
-            userPreferencesRepository.updateSortConfig(TaskSortConfig(sortBy, newDirection))
+            val updatedConfig = sortConfig.value.clickHandler(newSortBy = sortBy)
+            userPreferencesRepository.updateSortConfig(updatedConfig)
         }
     }
 

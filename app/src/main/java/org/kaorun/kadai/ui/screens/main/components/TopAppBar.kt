@@ -11,6 +11,7 @@ import androidx.compose.animation.slideOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -213,6 +214,7 @@ private fun SortMenu(
     val dateCreatedString = stringResource(R.string.date_created)
     val dateReminderString = stringResource(R.string.date_reminder)
     val titleString = stringResource(R.string.title)
+    val scope = rememberCoroutineScope()
     val sortOptions = remember(dateCreatedString, dateReminderString, titleString) {
         listOf(
             TaskSortBy.DATE_CREATED to dateCreatedString,
@@ -234,10 +236,7 @@ private fun SortMenu(
                 val isSelected = sortConfig.sortBy == field
                 DropdownMenuItem(
                     selected = isSelected,
-                    onClick = {
-                        onSortByClick(field)
-                        onDismissRequest()
-                    },
+                    onClick = { scope.launch { onSortByClick(field) } },
                     horizontalArrangement = Arrangement.SpaceBetween,
                     text = {
                         Text(text = label)
@@ -255,7 +254,7 @@ private fun SortMenu(
                                 contentDescription = contentDescription
                             )
                         }
-                    } else null
+                    } else { { Spacer(modifier = Modifier.width(MenuDefaults.TrailingIconSize)) } }
                 )
             }
         }

@@ -84,9 +84,7 @@ class TaskViewModel @Inject constructor(
                 save()
                 navigateBack()
             }
-        } else {
-            navigateBack()
-        }
+        } else navigateBack()
     }
 
     fun onTitleChange(value: String) {
@@ -163,9 +161,7 @@ class TaskViewModel @Inject constructor(
                     details = details?.trim()?.takeIf { it.isNotEmpty() },
                     triggerAtMillis = timestamp
                 )
-            } else {
-                cancelNotification(taskId = savedId)
-            }
+            } else cancelNotification(taskId = savedId)
         }
     }
 
