@@ -3,12 +3,14 @@ package org.kaorun.kadai.ui.screens.task.components
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardCapitalization
 
 @Composable
 fun TextField(
@@ -17,7 +19,11 @@ fun TextField(
     textStyle: TextStyle,
     onValueChange: (String) -> Unit,
     modifier: Modifier = Modifier,
-    maxLines: Int = 5
+    maxLines: Int = 5,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(
+        capitalization = KeyboardCapitalization.Sentences,
+        autoCorrectEnabled = true
+    )
 ) {
     BasicTextField(
         value = text,
@@ -32,6 +38,7 @@ fun TextField(
             color = MaterialTheme.colorScheme.onSurface
         ),
         maxLines = maxLines,
+        keyboardOptions = keyboardOptions,
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         decorationBox = { innerTextField ->
             Box(modifier = Modifier.fillMaxWidth()) {

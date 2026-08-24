@@ -95,16 +95,16 @@ class MainViewModel @Inject constructor(
             }
 
             TaskSortBy.DATE_REMINDER -> {
-                val nullsLast = compareBy<Task> { it.timestamp == null }
+                val nullsLast = compareBy<Task> { it.dueTimestamp == null }
                 when (config.direction) {
                     SortDirection.ASCENDING -> filtered.sortedWith(
                         nullsLast
-                            .thenBy { it.timestamp
+                            .thenBy { it.dueTimestamp
                             }.thenBy { it.id }
                     )
                     SortDirection.DESCENDING -> filtered.sortedWith(
                         nullsLast
-                            .thenByDescending { it.timestamp }
+                            .thenByDescending { it.dueTimestamp }
                             .thenByDescending { it.id }
                     )
                 }

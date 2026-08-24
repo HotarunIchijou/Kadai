@@ -48,4 +48,6 @@
     <string name="Selected_icon">Selected</string>
     <string name="ascending">Ascending</string>
     <string name="descending">Descending</string>
+    <string name="created_at">Created at: %s</string>
+    <string name="last_modified">Last modified: %s</string>
 </resources>

@@ -4,49 +4,70 @@ import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.material3.TimePickerState
 import org.kaorun.kadai.R
-import java.time.*
+import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val systemZone = ZoneId.systemDefault()
+private val systemZone: ZoneId
+    get() = ZoneId.systemDefault()
 
-fun LocalDate.toTimestamp(state: TimePickerState): Long {
+fun LocalDate.toTimestamp(
+    state: TimePickerState,
+    zoneId: ZoneId = systemZone
+): Long {
     return this.atTime(state.hour, state.minute)
-        .atZone(systemZone)
+        .atZone(zoneId)
         .toInstant()
         .toEpochMilli()
 }
 
-fun Long.toFormattedTime(context: Context): String {
-    val time = Instant.ofEpochMilli(this).atZone(systemZone).toLocalTime()
-    val pattern = if (DateFormat.is24HourFormat(context)) "HH:mm" else "h:mm a"
+fun Long.toFormattedTime(context: Context): String =
+    DateFormat.getTimeFormat(context).format(this)
 
-    return time.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
-}
-
-fun Long.toFormattedDate(context: Context): String {
-    val date = Instant.ofEpochMilli(this).atZone(systemZone).toLocalDate()
-    val today = LocalDate.now(systemZone)
-
-    val todayLabel = context.getString(R.string.today)
-    val tomorrowLabel = context.getString(R.string.tomorrow)
-    val yesterdayLabel = context.getString(R.string.yesterday)
+fun Long.toFormattedDate(
+    context: Context,
+    zoneId: ZoneId = systemZone
+): String {
+    val date = Instant.ofEpochMilli(this).atZone(zoneId).toLocalDate()
+    val today = LocalDate.now(zoneId)
 
     return when (date) {
-        today -> todayLabel
-        today.plusDays(1) -> tomorrowLabel
-        today.minusDays(1) -> yesterdayLabel
+        today -> context.getString(R.string.today)
+        today.plusDays(1) -> context.getString(R.string.tomorrow)
+        today.minusDays(1) -> context.getString(R.string.yesterday)
         else -> {
-            val pattern = if (date.year == today.year) "MMM d" else "MMM d, yyyy"
-            date.format(DateTimeFormatter.ofPattern(pattern, Locale.getDefault()))
+            val locale = Locale.getDefault()
+            val skeleton = if (date.year == today.year) "MMMd" else "yMMMd"
+            val pattern = DateFormat.getBestDateTimePattern(locale, skeleton)
+            val formatter = DateTimeFormatter.ofPattern(pattern, locale)
+
+            date.format(formatter)
         }
     }
 }
 
-fun combineDateAndTime(dateMillis: Long?, timeState: TimePickerState): Long {
-    val date = dateMillis?.let {
-        Instant.ofEpochMilli(it).atZone(systemZone).toLocalDate()
-    } ?: LocalDate.now(systemZone)
+fun Long.toFormattedFullDateTime(context: Context): String {
+    val dateStr = DateFormat.getMediumDateFormat(context).format(this)
+    val timeStr = DateFormat.getTimeFormat(context).format(this)
+    return "$dateStr, $timeStr"
+}
 
-    return date.toTimestamp(timeState)
+fun combineDateAndTime(
+    dateMillis: Long?,
+    timeState: TimePickerState,
+    isUtcDatePickerMillis: Boolean = false,
+    zoneId: ZoneId = systemZone
+): Long {
+    val date = dateMillis?.let {
+        if (isUtcDatePickerMillis) {
+            Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()
+        } else {
+            Instant.ofEpochMilli(it).atZone(zoneId).toLocalDate()
+        }
+    } ?: LocalDate.now(zoneId)
+
+    return date.toTimestamp(timeState, zoneId)
 }

@@ -3,6 +3,7 @@
 package org.kaorun.kadai.ui.screens.main.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -54,6 +55,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -62,7 +64,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.launch
@@ -101,11 +102,23 @@ fun TopAppBar(
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
-                Text(
-                    modifier = Modifier.clearAndSetSemantics { }.fillMaxWidth(),
-                    text = stringResource(R.string.search),
-                    textAlign = TextAlign.Center
+                val isExpanded = searchBarState.targetValue == SearchBarValue.Expanded
+                val alignmentBias by animateFloatAsState(
+                    targetValue = if (isExpanded) -1f else 0f,
+                    animationSpec = motionScheme.fastSpatialSpec()
                 )
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = BiasAlignment(
+                        horizontalBias = alignmentBias,
+                        verticalBias = 0f
+                    )
+                ) {
+                    Text(
+                        modifier = Modifier.clearAndSetSemantics { },
+                        text = stringResource(R.string.search)
+                    )
+                }
             },
             leadingIcon = {
                 SearchBarIcon(

@@ -3,6 +3,7 @@
 /.idea/*
 !.idea/codeStyles/
 /.artifacts
+/.kotlin
 .DS_Store
 /build
 /captures

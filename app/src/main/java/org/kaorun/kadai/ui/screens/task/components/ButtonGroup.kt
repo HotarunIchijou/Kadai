@@ -93,7 +93,7 @@ fun ButtonGroupScope.buttonGroupIconItem(
                 colors = IconButtonDefaults.filledTonalIconButtonColors(),
                 interactionSource = interactionSource,
                 modifier = Modifier
-                    .padding(end = 8.dp)
+                    .padding(end = 12.dp)
                     .animateWidth(interactionSource)
                     .height(ButtonDefaults.ExtraSmallContainerHeight)
                     .width(32.dp)

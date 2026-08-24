@@ -35,6 +35,7 @@ import org.kaorun.kadai.ui.icons.keyboard_arrow_down
 import org.kaorun.kadai.ui.screens.main.utils.animatedStrikethrough
 import org.kaorun.kadai.ui.utils.toFormattedDate
 import org.kaorun.kadai.ui.utils.toFormattedTime
+import kotlin.time.Duration.Companion.milliseconds
 
 @Composable
 fun TaskListSection(
@@ -121,7 +122,7 @@ fun TaskListSection(
                                 onValueChange = { checked ->
                                     isChecked = checked
                                     coroutineScope.launch {
-                                        delay(200.toLong())
+                                        delay(200.milliseconds)
                                         onCheck(task, checked)
                                     }
                                 }
@@ -149,7 +150,7 @@ fun TaskListSection(
                                 )
                             }
                         },
-                        trailingContent = task.timestamp?.let { timestamp ->
+                        trailingContent = task.dueTimestamp?.let { timestamp ->
                             {
                                 val context = LocalContext.current
                                 val date = timestamp.toFormattedDate(context)

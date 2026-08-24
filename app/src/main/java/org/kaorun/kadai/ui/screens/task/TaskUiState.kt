@@ -7,7 +7,10 @@ sealed interface TaskUiState {
         val id: Long? = null,
         val title: String = "",
         val details: String? = null,
-        val timestamp: Long? = null,
-        val isDone: Boolean = false
+        val createdAtTimestamp: Long = System.currentTimeMillis(),
+        val modifiedAtTimestamp: Long? = null,
+        val dueTimestamp: Long? = null,
+        val isDone: Boolean = false,
+        val isNewTask: Boolean = false
     ) : TaskUiState
 }
