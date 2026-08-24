@@ -42,7 +42,6 @@ android {
 }
 
 dependencies {
-    implementation(libs.androidx.compose.runtime)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.androidx.datastore.preferences)
@@ -53,7 +52,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.material3)
     implementation(libs.androidx.navigation)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.hilt.navigation.compose)
