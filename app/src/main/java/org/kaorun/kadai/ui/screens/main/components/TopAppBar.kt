@@ -68,8 +68,8 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
-import org.kaorun.kadai.data.SortDirection
-import org.kaorun.kadai.data.TaskSortBy
+import org.kaorun.kadai.data.TaskSortDirection
+import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.data.TaskSortConfig
 import org.kaorun.kadai.ui.icons.arrow_back
 import org.kaorun.kadai.ui.icons.arrow_downward_alt
@@ -82,7 +82,7 @@ import org.kaorun.kadai.ui.icons.swap_vert
 fun TopAppBar(
     navigationRailState: WideNavigationRailState,
     sortConfig: TaskSortConfig,
-    onSortByClick: (TaskSortBy) -> Unit,
+    onSortByClick: (TaskSortField) -> Unit,
     onSearch: (String) -> Unit,
 ) {
     val scope = rememberCoroutineScope()
@@ -95,10 +95,10 @@ fun TopAppBar(
             textFieldState = textFieldState,
             searchBarState = searchBarState,
             onSearch = {
-                scope.launch {
-                    onSearch(textFieldState.text.toString())
-                    searchBarState.animateToCollapsed()
-                }
+                val query = textFieldState.text.toString().trim()
+                textFieldState.setTextAndPlaceCursorAtEnd(query)
+                onSearch(query)
+                scope.launch { searchBarState.animateToCollapsed() }
             },
             modifier = Modifier.fillMaxWidth(),
             placeholder = {
@@ -124,7 +124,7 @@ fun TopAppBar(
                 SearchBarIcon(
                     onClick = {
                         textFieldState.setTextAndPlaceCursorAtEnd("")
-                        onSearch(textFieldState.text.toString())
+                        onSearch("")
                         scope.launch { searchBarState.animateToCollapsed() }
                     },
                     imageVector = arrow_back,
@@ -137,6 +137,7 @@ fun TopAppBar(
                 SearchBarIcon(
                     onClick = {
                         textFieldState.setTextAndPlaceCursorAtEnd("")
+                        onSearch("")
                     },
                     imageVector = close,
                     contentDescription = stringResource(R.string.clear),
@@ -215,7 +216,7 @@ fun TopAppBar(
 private fun SortMenu(
     expanded: Boolean,
     sortConfig: TaskSortConfig,
-    onSortByClick: (TaskSortBy) -> Unit,
+    onSortByClick: (TaskSortField) -> Unit,
     onDismissRequest: () -> Unit
 ) {
     val dateCreatedString = stringResource(R.string.date_created)
@@ -224,9 +225,9 @@ private fun SortMenu(
     val scope = rememberCoroutineScope()
     val sortOptions = remember(dateCreatedString, dateReminderString, titleString) {
         listOf(
-            TaskSortBy.DATE_CREATED to dateCreatedString,
-            TaskSortBy.DATE_REMINDER to dateReminderString,
-            TaskSortBy.TITLE to titleString
+            TaskSortField.DATE_CREATED to dateCreatedString,
+            TaskSortField.DATE_REMINDER to dateReminderString,
+            TaskSortField.TITLE to titleString
         )
     }
 
@@ -240,7 +241,7 @@ private fun SortMenu(
         ) {
             val itemCount = sortOptions.size
             sortOptions.forEachIndexed { itemIndex, (field, label) ->
-                val isSelected = sortConfig.sortBy == field
+                val isSelected = sortConfig.field == field
                 DropdownMenuItem(
                     selected = isSelected,
                     onClick = { scope.launch { onSortByClick(field) } },
@@ -251,7 +252,7 @@ private fun SortMenu(
                     shapes = MenuDefaults.itemShape(itemIndex, itemCount),
                     trailingContent = if (isSelected) {
                         {
-                            val isAsc = sortConfig.direction == SortDirection.ASCENDING
+                            val isAsc = sortConfig.direction == TaskSortDirection.ASCENDING
                             val contentDescription = stringResource(
                                 if (isAsc) R.string.ascending else R.string.descending
                             )

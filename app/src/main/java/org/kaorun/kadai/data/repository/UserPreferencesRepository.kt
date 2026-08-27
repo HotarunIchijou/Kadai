@@ -8,9 +8,10 @@ import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
-import org.kaorun.kadai.data.SortDirection
-import org.kaorun.kadai.data.TaskSortBy
+import org.kaorun.kadai.data.TaskSortDirection
+import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.data.TaskSortConfig
 import java.io.IOException
 import javax.inject.Inject
@@ -34,6 +35,7 @@ class UserPreferencesRepository @Inject constructor(
         .map { preferences ->
             preferences[PreferencesKeys.ONBOARDING_COMPLETED] ?: false
         }
+        .distinctUntilChanged()
 
     suspend fun setOnboardingCompleted(completed: Boolean = true) {
         dataStore.edit { preferences ->
@@ -48,6 +50,7 @@ class UserPreferencesRepository @Inject constructor(
         .map { preferences ->
             preferences[PreferencesKeys.PERMISSION_CARD_DISMISSED] ?: false
         }
+        .distinctUntilChanged()
 
     suspend fun setPermissionCardDismissed(dismissed: Boolean = true) {
         dataStore.edit { preferences ->
@@ -61,19 +64,20 @@ class UserPreferencesRepository @Inject constructor(
         }
         .map { preferences ->
             val sortBy = preferences[PreferencesKeys.SORT_BY]?.let { name ->
-                TaskSortBy.entries.find { it.name == name }
-            } ?: TaskSortBy.DATE_CREATED
+                TaskSortField.entries.find { it.name == name }
+            } ?: TaskSortField.DATE_CREATED
 
             val direction = preferences[PreferencesKeys.SORT_DIRECTION]?.let { name ->
-                SortDirection.entries.find { it.name == name }
-            } ?: SortDirection.DESCENDING
+                TaskSortDirection.entries.find { it.name == name }
+            } ?: TaskSortDirection.DESCENDING
 
-            TaskSortConfig(sortBy = sortBy, direction = direction)
+            TaskSortConfig(field = sortBy, direction = direction)
         }
+        .distinctUntilChanged()
 
     suspend fun updateSortConfig(config: TaskSortConfig) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SORT_BY] = config.sortBy.name
+            preferences[PreferencesKeys.SORT_BY] = config.field.name
             preferences[PreferencesKeys.SORT_DIRECTION] = config.direction.name
         }
     }

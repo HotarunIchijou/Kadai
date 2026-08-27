@@ -51,7 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
 import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskSortBy
+import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.data.TaskSortConfig
 import org.kaorun.kadai.ui.icons.add_task
 import org.kaorun.kadai.ui.icons.done_all
@@ -82,14 +82,14 @@ fun MainScreen(
         snackbarMessage = snackbarMessage,
         snackbarHostState = snackbarHostState,
         onNavigateToTask = onNavigateToTask,
-        onSortByClick = viewModel::onSortByClick,
-        onCheck = viewModel::onTaskCheck,
-        onUndo = viewModel::onUndoSnackbar,
-        setSnackbarShown = viewModel::snackbarMessageShown,
+        onSortFieldSelected = viewModel::onSortFieldSelected,
+        onTaskCompletionToggled = viewModel::onTaskCompletionToggled,
+        onUndoTaskCompletion = viewModel::onUndoTaskCompletion,
+        onSnackbarMessageDismissed = viewModel::onSnackbarMessageDismissed,
         onSearchQueryChange = viewModel::onSearchQueryChange,
         permissionCardDismissed = isPermissionCardDismissed,
         onPermissionCardClick = onPermissionCardClick,
-        onPermissionCardCloseClick = viewModel::onPermissionCardDismiss
+        onPermissionDismissed = viewModel::onPermissionDismissed
     )
 }
 
@@ -99,15 +99,15 @@ fun MainScreenContent(
     sortConfig: TaskSortConfig,
     snackbarMessage: MainViewModel.TaskSnackbarMessage?,
     snackbarHostState: SnackbarHostState,
-    onSortByClick: (TaskSortBy) -> Unit,
+    onSortFieldSelected: (TaskSortField) -> Unit,
     onNavigateToTask: (Long?) -> Unit,
-    onCheck: (Task, Boolean) -> Unit,
-    onUndo: (Task, Boolean) -> Unit,
-    setSnackbarShown: () -> Unit,
+    onTaskCompletionToggled: (Task, Boolean) -> Unit,
+    onUndoTaskCompletion: (Task, Boolean) -> Unit,
+    onSnackbarMessageDismissed: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
     permissionCardDismissed: Boolean,
     onPermissionCardClick: () -> Unit,
-    onPermissionCardCloseClick: () -> Unit
+    onPermissionDismissed: () -> Unit
 ) {
     val scope = rememberCoroutineScope()
     val permissionsGranted = rememberPermissionsGranted()
@@ -144,7 +144,7 @@ fun MainScreenContent(
             TopAppBar(
                 navigationRailState = navigationRailState,
                 sortConfig = sortConfig,
-                onSortByClick = onSortByClick,
+                onSortByClick = onSortFieldSelected,
                 onSearch = onSearchQueryChange
             )
         },
@@ -184,9 +184,9 @@ fun MainScreenContent(
                     contentPadding = listContentPadding,
                     showPermissionCard = permissionCardVisible,
                     onClick = handleTaskClick,
-                    onCheck = onCheck,
+                    onCheck = onTaskCompletionToggled,
                     onPermissionCardClick = onPermissionCardClick,
-                    onPermissionCardCloseClick = onPermissionCardCloseClick
+                    onPermissionCardCloseClick = onPermissionDismissed
                 )
                 1 -> TaskList(
                     tasks = completedTasks,
@@ -194,9 +194,9 @@ fun MainScreenContent(
                     contentPadding = listContentPadding,
                     showPermissionCard = permissionCardVisible,
                     onClick = handleTaskClick,
-                    onCheck = onCheck,
+                    onCheck = onTaskCompletionToggled,
                     onPermissionCardClick = onPermissionCardClick,
-                    onPermissionCardCloseClick = onPermissionCardCloseClick
+                    onPermissionCardCloseClick = onPermissionDismissed
                 )
             }
         }
@@ -217,11 +217,11 @@ fun MainScreenContent(
                 val restoredTask = currentMessage.task
                 val targetState = currentMessage.previousCompletedState
 
-                onUndo(restoredTask, targetState)
+                onUndoTaskCompletion(restoredTask, targetState)
                 undoScrollHandler.handle(restoredTask, targetState)
             }
 
-            setSnackbarShown()
+            onSnackbarMessageDismissed()
         }
     }
 }
@@ -300,15 +300,15 @@ private fun MainScreenContentPreview() {
             sortConfig = TaskSortConfig(),
             snackbarMessage = null,
             snackbarHostState = SnackbarHostState(),
-            onSortByClick = { },
+            onSortFieldSelected = { },
             onNavigateToTask = { },
-            onCheck = { _, _ -> },
-            onUndo = { _, _ -> },
-            setSnackbarShown = { },
+            onTaskCompletionToggled = { _, _ -> },
+            onUndoTaskCompletion = { _, _ -> },
+            onSnackbarMessageDismissed = { },
             onSearchQueryChange = { },
             permissionCardDismissed = false,
             onPermissionCardClick = { },
-            onPermissionCardCloseClick = { }
+            onPermissionDismissed = { }
         )
     }
 }

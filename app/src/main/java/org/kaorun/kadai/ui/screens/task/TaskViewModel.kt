@@ -69,7 +69,7 @@ class TaskViewModel @Inject constructor(
 
         loadState = LoadState.LOADING
         viewModelScope.launch {
-            val task = taskRepository.getTaskById(taskId)
+            val task = taskRepository.getById(taskId)
             lastSavedTask = task
             _uiState.value = task?.let {
                 TaskUiState.Success(

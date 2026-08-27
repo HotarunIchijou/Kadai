@@ -42,7 +42,7 @@ class AlarmReceiver : BroadcastReceiver() {
                         )
 
                         if (taskId != -1L) {
-                            taskRepository.getTaskById(taskId)?.let { task ->
+                            taskRepository.getById(taskId)?.let { task ->
                                 taskRepository.update(task.copy(isCompleted = true))
                             }
                         }
