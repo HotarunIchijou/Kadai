@@ -125,9 +125,7 @@ fun PermissionScreen(
         isAlarmGranted = isAlarmGranted,
         isCloseButtonVisible = isCloseButtonVisible,
         isContinueButtonEnabled = allGranted,
-        onShowCloseButton = {
-            if (!isCloseButtonVisible) isCloseButtonVisible = true
-        },
+        onShowCloseButton = { isCloseButtonVisible = true },
         onContinueClick = onContinue,
         onRequestNotification = {
             when {
@@ -168,7 +166,12 @@ private fun PermissionScreenContent(
     val notificationTitle = stringResource(R.string.notification_permission)
     val alarmTitle = stringResource(R.string.schedule_exact_alarms)
 
-    val items = remember(isNotificationGranted, isAlarmGranted, notificationTitle, alarmTitle) {
+    val items = remember(
+        isNotificationGranted,
+        isAlarmGranted,
+        notificationTitle,
+        alarmTitle
+    ) {
         listOf(
             PermissionItem(
                 title = notificationTitle,

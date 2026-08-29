@@ -4,6 +4,7 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -11,12 +12,12 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.kaorun.kadai.R
 import org.kaorun.kadai.data.Task
 import org.kaorun.kadai.data.TaskSortConfig
@@ -27,7 +28,6 @@ import org.kaorun.kadai.reminder.AlarmScheduler
 import org.kaorun.kadai.reminder.data.ScheduledNotificationRepository
 import java.util.UUID
 import javax.inject.Inject
-import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -63,18 +63,26 @@ class MainViewModel @Inject constructor(
         )
 
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-    val tasks: StateFlow<List<Task>> = _searchQuery
-        .debounce(300.milliseconds)
+    val mainUiState: StateFlow<MainUiState> = _searchQuery
         .map { it.trim() }
         .distinctUntilChanged()
         .combine(sortConfig) { query, config -> query to config }
         .flatMapLatest { (query, config) ->
             repository.getAllSorted(query, config.field, config.direction)
         }
+        .map<List<Task>, MainUiState> { tasks ->
+            withContext(Dispatchers.Default) {
+                val (pending, completed) = tasks.partition { !it.isCompleted }
+                MainUiState.Success(
+                    pendingTasks = pending,
+                    completedTasks = completed
+                )
+            }
+        }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyList()
+            initialValue = MainUiState.Loading
         )
 
     fun onSortFieldSelected(field: TaskSortField) {
@@ -84,7 +92,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun onSearchQueryChange(query: String) {
+    fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
     }
 

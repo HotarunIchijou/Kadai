@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import kotlinx.coroutines.CoroutineScope
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
@@ -48,11 +47,12 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
 import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.data.TaskSortConfig
+import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.ui.icons.add
 import org.kaorun.kadai.ui.icons.done_all
 import org.kaorun.kadai.ui.icons.filled.list_filled
@@ -70,14 +70,14 @@ fun MainScreen(
     onNavigateToTask: (Long?) -> Unit,
     onPermissionCardClick: () -> Unit
 ) {
-    val tasks by viewModel.tasks.collectAsStateWithLifecycle()
+    val uiState by viewModel.mainUiState.collectAsStateWithLifecycle()
     val sortConfig by viewModel.sortConfig.collectAsStateWithLifecycle()
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
     val isPermissionCardDismissed by viewModel.isPermissionCardDismissed.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     MainScreenContent(
-        tasks = tasks,
+        uiState = uiState,
         sortConfig = sortConfig,
         snackbarMessage = snackbarMessage,
         snackbarHostState = snackbarHostState,
@@ -86,7 +86,7 @@ fun MainScreen(
         onTaskCompletionToggled = viewModel::onTaskCompletionToggled,
         onUndoTaskCompletion = viewModel::onUndoTaskCompletion,
         onSnackbarMessageDismissed = viewModel::onSnackbarMessageDismissed,
-        onSearchQueryChange = viewModel::onSearchQueryChange,
+        onSearchQueryChange = viewModel::onSearchQueryChanged,
         permissionCardDismissed = isPermissionCardDismissed,
         onPermissionCardClick = onPermissionCardClick,
         onPermissionDismissed = viewModel::onPermissionDismissed
@@ -95,7 +95,7 @@ fun MainScreen(
 
 @Composable
 fun MainScreenContent(
-    tasks: List<Task>,
+    uiState: MainUiState,
     sortConfig: TaskSortConfig,
     snackbarMessage: MainViewModel.TaskSnackbarMessage?,
     snackbarHostState: SnackbarHostState,
@@ -115,9 +115,11 @@ fun MainScreenContent(
     val pagerState = rememberPagerState(pageCount = { 2 })
     val pendingListState = rememberLazyListState()
     val completedListState = rememberLazyListState()
-    val currentTasks by rememberUpdatedState(tasks)
 
     val permissionCardVisible = !permissionsGranted && !permissionCardDismissed
+
+    // Always pulls current state directly without stale closures
+    val currentUiState by rememberUpdatedState(uiState)
 
     val undoScrollHandler = remember(
         pagerState,
@@ -131,11 +133,14 @@ fun MainScreenContent(
             pendingListState = pendingListState,
             completedListState = completedListState,
             permissionCardVisible = permissionCardVisible,
-            currentTasks = { currentTasks }
+            currentTasks = {
+                when (val state = currentUiState) {
+                    is MainUiState.Success -> state.pendingTasks + state.completedTasks
+                    else -> emptyList()
+                }
+            }
         )
     }
-
-    val (completedTasks, pendingTasks) = remember(tasks) { tasks.partition { it.isCompleted } }
 
     ModalWideNavigationRail(navigationRailState = navigationRailState)
 
@@ -171,33 +176,38 @@ fun MainScreenContent(
             { task: Task -> onNavigateToTask(task.id) }
         }
 
-        HorizontalPager(
-            state = pagerState,
-            beyondViewportPageCount = 1,
-            verticalAlignment = Alignment.Top,
-            modifier = Modifier.fillMaxSize()
-        ) { page ->
-            when (page) {
-                0 -> TaskList(
-                    tasks = pendingTasks,
-                    state = pendingListState,
-                    contentPadding = listContentPadding,
-                    showPermissionCard = permissionCardVisible,
-                    onClick = handleTaskClick,
-                    onCheck = onTaskCompletionToggled,
-                    onPermissionCardClick = onPermissionCardClick,
-                    onPermissionCardCloseClick = onPermissionDismissed
-                )
-                1 -> TaskList(
-                    tasks = completedTasks,
-                    state = completedListState,
-                    contentPadding = listContentPadding,
-                    showPermissionCard = permissionCardVisible,
-                    onClick = handleTaskClick,
-                    onCheck = onTaskCompletionToggled,
-                    onPermissionCardClick = onPermissionCardClick,
-                    onPermissionCardCloseClick = onPermissionDismissed
-                )
+        when (uiState) {
+            is MainUiState.Loading -> Unit
+            is MainUiState.Success -> {
+                HorizontalPager(
+                    state = pagerState,
+                    beyondViewportPageCount = 1,
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.fillMaxSize()
+                ) { page ->
+                    when (page) {
+                        0 -> TaskList(
+                            tasks = uiState.pendingTasks,
+                            state = pendingListState,
+                            contentPadding = listContentPadding,
+                            showPermissionCard = permissionCardVisible,
+                            onClick = handleTaskClick,
+                            onCheck = onTaskCompletionToggled,
+                            onPermissionCardClick = onPermissionCardClick,
+                            onPermissionCardCloseClick = onPermissionDismissed
+                        )
+                        1 -> TaskList(
+                            tasks = uiState.completedTasks,
+                            state = completedListState,
+                            contentPadding = listContentPadding,
+                            showPermissionCard = permissionCardVisible,
+                            onClick = handleTaskClick,
+                            onCheck = onTaskCompletionToggled,
+                            onPermissionCardClick = onPermissionCardClick,
+                            onPermissionCardCloseClick = onPermissionDismissed
+                        )
+                    }
+                }
             }
         }
     }
@@ -272,30 +282,12 @@ private fun FloatingBar(
             },
             state = rememberTooltipState()
         ) {
-            val descriptionString = stringResource(R.string.add_task)
-            TooltipBox(
-                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                    TooltipAnchorPosition.Above
-                ),
-                tooltip = {
-                    PlainTooltip(
-                        modifier = Modifier.semantics {
-                            liveRegion = LiveRegionMode.Assertive
-                            paneTitle = descriptionString
-                        }
-                    ) {
-                        Text(descriptionString)
-                    }
-                },
-                state = rememberTooltipState()
+            FloatingActionButton(
+                onClick = { onNavigateToTask(null) },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
             ) {
-                FloatingActionButton(
-                    onClick = { onNavigateToTask(null) },
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                ) {
-                    Icon(imageVector = add, contentDescription = descriptionString)
-                }
+                Icon(imageVector = add, contentDescription = addTaskDescription)
             }
         }
     }
@@ -314,7 +306,10 @@ private fun MainScreenContentPreview() {
 
     KadaiTheme {
         MainScreenContent(
-            tasks = tasks,
+            uiState = MainUiState.Success(
+                pendingTasks = tasks,
+                completedTasks = emptyList()
+            ),
             sortConfig = TaskSortConfig(),
             snackbarMessage = null,
             snackbarHostState = SnackbarHostState(),

@@ -50,4 +50,5 @@
     <string name="descending">Descending</string>
     <string name="created_at">Created at: %s</string>
     <string name="last_modified">Last modified: %s</string>
+    <string name="task_list_empty">Task list is empty</string>
 </resources>
