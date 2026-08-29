@@ -4,7 +4,6 @@ import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,7 +14,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -25,6 +23,8 @@ import org.kaorun.kadai.data.TaskSortConfig
 import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.data.repository.TaskRepository
 import org.kaorun.kadai.data.repository.UserPreferencesRepository
+import org.kaorun.kadai.reminder.AlarmScheduler
+import org.kaorun.kadai.reminder.data.ScheduledNotificationRepository
 import java.util.UUID
 import javax.inject.Inject
 import kotlin.time.Duration.Companion.milliseconds
@@ -32,7 +32,9 @@ import kotlin.time.Duration.Companion.milliseconds
 @HiltViewModel
 class MainViewModel @Inject constructor(
     private val repository: TaskRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val scheduledNotificationRepository: ScheduledNotificationRepository,
+    private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
     data class TaskSnackbarMessage(
         val id: Long,
@@ -66,11 +68,9 @@ class MainViewModel @Inject constructor(
         .map { it.trim() }
         .distinctUntilChanged()
         .combine(sortConfig) { query, config -> query to config }
-        .flowOn(Dispatchers.Default)
         .flatMapLatest { (query, config) ->
             repository.getAllSorted(query, config.field, config.direction)
         }
-        .flowOn(Dispatchers.IO)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -95,6 +95,9 @@ class MainViewModel @Inject constructor(
             R.string.snackbar_message_uncompleted
         }
         viewModelScope.launch {
+            task.dueTimestamp?.let {
+                cancelNotification(task.id)
+            }
             repository.update(task.copy(isCompleted = isCompleted))
             showSnackbarMessage(messageResId, task, previousState = !isCompleted)
         }
@@ -127,5 +130,11 @@ class MainViewModel @Inject constructor(
             task = task,
             previousCompletedState = previousState
         )
+    }
+
+    private suspend fun cancelNotification(taskId: Long) {
+        val existing = scheduledNotificationRepository.getByTaskId(taskId)
+        existing?.let { alarmScheduler.cancel(it) }
+        scheduledNotificationRepository.deleteByTaskId(taskId)
     }
 }

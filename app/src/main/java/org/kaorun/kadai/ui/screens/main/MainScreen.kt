@@ -53,7 +53,7 @@ import org.kaorun.kadai.R
 import org.kaorun.kadai.data.Task
 import org.kaorun.kadai.data.TaskSortField
 import org.kaorun.kadai.data.TaskSortConfig
-import org.kaorun.kadai.ui.icons.add_task
+import org.kaorun.kadai.ui.icons.add
 import org.kaorun.kadai.ui.icons.done_all
 import org.kaorun.kadai.ui.icons.filled.list_filled
 import org.kaorun.kadai.ui.screens.main.components.FloatingToolbar
@@ -272,12 +272,30 @@ private fun FloatingBar(
             },
             state = rememberTooltipState()
         ) {
-            FloatingActionButton(
-                onClick = { onNavigateToTask(null) },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+            val descriptionString = stringResource(R.string.add_task)
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
+                    TooltipAnchorPosition.Above
+                ),
+                tooltip = {
+                    PlainTooltip(
+                        modifier = Modifier.semantics {
+                            liveRegion = LiveRegionMode.Assertive
+                            paneTitle = descriptionString
+                        }
+                    ) {
+                        Text(descriptionString)
+                    }
+                },
+                state = rememberTooltipState()
             ) {
-                Icon(imageVector = add_task, contentDescription = null)
+                FloatingActionButton(
+                    onClick = { onNavigateToTask(null) },
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                ) {
+                    Icon(imageVector = add, contentDescription = descriptionString)
+                }
             }
         }
     }

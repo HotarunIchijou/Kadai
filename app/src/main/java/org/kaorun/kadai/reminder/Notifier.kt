@@ -8,6 +8,7 @@ import android.content.pm.PackageManager
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
+import org.kaorun.kadai.R
 
 abstract class Notifier(
     protected val context: Context
@@ -26,7 +27,7 @@ abstract class Notifier(
     protected fun baseBuilder(): NotificationCompat.Builder {
         createNotificationChannel()
         return NotificationCompat.Builder(context, channelId)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.task_alt_24px)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
     }

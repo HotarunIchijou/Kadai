@@ -120,7 +120,14 @@ class TaskViewModel @Inject constructor(
 
     fun onDoneChange(value: Boolean) {
         _uiState.update { state ->
-            if (state is TaskUiState.Success) state.copy(isDone = value)
+            if (state is TaskUiState.Success) {
+                state.dueTimestamp?.let {
+                    viewModelScope.launch {
+                        cancelNotification(state.toTask().id)
+                    }
+                }
+                state.copy(isDone = value)
+            }
             else state
         }
     }
