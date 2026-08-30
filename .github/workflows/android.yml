@@ -2,31 +2,24 @@ name: Android CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "master", "dev" ]
     paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - 'LICENSE'
-      - '.gitignore'
+      - ".github/**"
+      - "!.github/workflows/**"
+      - ".idea/**"
+      - "fastlane/**"
+      - ".gitignore"
+      - "**.md"
+      - "LICENSE"
   pull_request:
-    branches: [ "master" ]
+    branches: [ "master", "dev" ]
     paths-ignore:
-      - '**.md'
-      - '.github/**'
-      - 'LICENSE'
-      - '.gitignore'
+      - ".idea/**"
+      - "fastlane/**"
+      - ".gitignore"
+      - "**.md"
+      - "LICENSE"
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Gradle build task / target'
-        required: true
-        default: 'assembleDebug'
-        type: choice
-        options:
-          - 'assembleDebug'
-          - 'assembleRelease'
-          - 'check'
-          - 'build'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -34,28 +27,27 @@ concurrency:
 
 jobs:
   build:
+    name: Build App
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 1
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: gradle
 
-      - name: Setup Gradle
-        uses: gradle/actions/setup-gradle@v4
-        with:
-          cache-read-only: ${{ github.ref != 'refs/heads/master' }}
+      - name: Build debug APK
+        run: ./gradlew :app:assembleDebug --build-cache --parallel --no-daemon
 
-      - name: Build & Assemble APK
-        run: ./gradlew assembleDebug check --build-cache --parallel --no-daemon
-
-      - name: Upload APK Artifact
+      - name: Upload APK artifact
         uses: actions/upload-artifact@v5
         if: success()
         with:
