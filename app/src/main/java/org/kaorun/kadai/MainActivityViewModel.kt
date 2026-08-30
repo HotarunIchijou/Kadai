@@ -8,17 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.kaorun.kadai.data.model.ThemeMode
 import org.kaorun.kadai.data.repository.UserPreferencesRepository
 import org.kaorun.kadai.ui.navigation.MainRoute
-import org.kaorun.kadai.ui.navigation.NavRoute
-import org.kaorun.kadai.ui.navigation.PermissionRoute
+import org.kaorun.kadai.ui.navigation.NotificationPermissionRoute
 import javax.inject.Inject
-
-sealed interface MainActivityUiState {
-    data object Loading : MainActivityUiState
-    data class Success(val startRoute: NavRoute) : MainActivityUiState
-}
-
 @HiltViewModel
 class MainActivityViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
@@ -26,13 +20,27 @@ class MainActivityViewModel @Inject constructor(
     val uiState: StateFlow<MainActivityUiState> = userPreferencesRepository.isOnboardingCompleted
         .map { isCompleted ->
             MainActivityUiState.Success(
-                startRoute = if (isCompleted) MainRoute else PermissionRoute
+                startRoute = if (isCompleted) MainRoute else NotificationPermissionRoute
             )
         }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = MainActivityUiState.Loading
+        )
+
+    val themeMode: StateFlow<ThemeMode> = userPreferencesRepository.themeMode
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = ThemeMode.SYSTEM_DEFAULT
+        )
+
+    val isDynamicTheme: StateFlow<Boolean> = userPreferencesRepository.dynamicTheme
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
         )
 
     fun completeOnboarding() {

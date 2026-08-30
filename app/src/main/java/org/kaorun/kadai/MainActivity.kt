@@ -39,8 +39,13 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+            val themeMode by viewModel.themeMode.collectAsStateWithLifecycle()
+            val isDynamicTheme by viewModel.isDynamicTheme.collectAsStateWithLifecycle()
 
-            KadaiTheme {
+            KadaiTheme(
+                themeMode = themeMode,
+                dynamicColor = isDynamicTheme
+            ) {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.surfaceContainer

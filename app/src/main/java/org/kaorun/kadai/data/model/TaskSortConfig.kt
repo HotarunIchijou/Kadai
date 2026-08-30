@@ -1,4 +1,4 @@
-package org.kaorun.kadai.data
+package org.kaorun.kadai.data.model
 
 data class TaskSortConfig(
     val field: TaskSortField = TaskSortField.DATE_CREATED,

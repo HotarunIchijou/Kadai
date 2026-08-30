@@ -10,7 +10,7 @@ interface DeepLinkKey : NavRoute {
 }
 
 @Serializable
-data object PermissionRoute : NavRoute
+data object NotificationPermissionRoute : NavRoute
 
 @Serializable
 data object MainRoute : NavRoute
@@ -22,3 +22,12 @@ data class TaskRoute(val taskId: Long) : DeepLinkKey {
 
 @Serializable
 data class AddTaskRoute(val instanceId: Long = System.currentTimeMillis()) : NavRoute
+
+@Serializable
+data object SettingsRoute : NavRoute
+
+@Serializable
+data object SettingsAppearanceRoute : NavRoute
+
+@Serializable
+data object SettingsAboutRoute : NavRoute

@@ -1,10 +1,10 @@
 package org.kaorun.kadai.data.repository
 
 import kotlinx.coroutines.flow.Flow
-import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskDao
-import org.kaorun.kadai.data.TaskSortDirection
-import org.kaorun.kadai.data.TaskSortField
+import org.kaorun.kadai.data.dao.TaskDao
+import org.kaorun.kadai.data.entity.Task
+import org.kaorun.kadai.data.model.TaskSortDirection
+import org.kaorun.kadai.data.model.TaskSortField
 
 class TaskRepository(private val taskDao: TaskDao) {
     fun getAllSorted(

@@ -7,7 +7,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
-import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.entity.Task
 
 class UndoScrollHandler(
     private val scope: CoroutineScope,

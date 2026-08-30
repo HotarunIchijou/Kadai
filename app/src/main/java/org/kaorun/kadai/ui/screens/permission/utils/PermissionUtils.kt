@@ -1,7 +1,6 @@
 package org.kaorun.kadai.ui.screens.permission.utils
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -20,7 +19,6 @@ fun isNotificationPermissionGranted(context: Context): Boolean {
     }
 }
 
-@SuppressLint("ObsoleteSdkInt")
 fun isExactAlarmPermissionGranted(context: Context): Boolean {
     return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
         val alarmManager = context.getSystemService(AlarmManager::class.java)

@@ -1,8 +1,11 @@
 package org.kaorun.kadai.ui.screens.main.components
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
@@ -18,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.motionScheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -36,7 +40,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
-import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.entity.Task
 import org.kaorun.kadai.ui.icons.task_alt
 import org.kaorun.kadai.ui.screens.main.utils.animatedStrikethrough
 import org.kaorun.kadai.ui.utils.toFormattedDate
@@ -59,7 +63,11 @@ fun TaskList(
     val innerCornerSize = 4.dp
     val colors = ListItemDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceBright)
 
-    if (tasks.isEmpty()) {
+    AnimatedVisibility(
+        visible = tasks.isEmpty(),
+        enter = fadeIn(animationSpec = motionScheme.fastEffectsSpec()),
+        exit = fadeOut(animationSpec = motionScheme.fastEffectsSpec())
+    ) {
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center
@@ -69,7 +77,13 @@ fun TaskList(
                 title = stringResource(R.string.task_list_empty)
             )
         }
-    } else {
+    }
+
+    AnimatedVisibility(
+        visible = tasks.isNotEmpty(),
+        enter = fadeIn(animationSpec = motionScheme.fastEffectsSpec()),
+        exit = fadeOut(animationSpec = motionScheme.fastEffectsSpec())
+    ) {
         LazyColumn(
             state = state,
             contentPadding = PaddingValues(
@@ -106,6 +120,19 @@ fun TaskList(
                         easing = FastOutSlowInEasing
                     )
                 )
+                val title = task.title.isNotBlank()
+                val details = !task.details.isNullOrBlank()
+
+                val displayTitle = when {
+                    title -> task.title
+                    details -> task.details
+                    else -> ""
+                }
+
+                val displayDetails = when {
+                    title && details -> task.details
+                    else -> null
+                }
 
                 val shape = remember(index, tasks.size) {
                     when {
@@ -152,7 +179,7 @@ fun TaskList(
                     },
                     content = {
                         Text(
-                            text = task.title,
+                            text = displayTitle,
                             maxLines = 1,
                             modifier = Modifier.animatedStrikethrough(
                                 progress = strikeProgress,
@@ -160,7 +187,7 @@ fun TaskList(
                             )
                         )
                     },
-                    supportingContent = task.details?.takeIf { it.isNotBlank() }?.let { details ->
+                    supportingContent = displayDetails?.let { details ->
                         {
                             Text(
                                 text = details,

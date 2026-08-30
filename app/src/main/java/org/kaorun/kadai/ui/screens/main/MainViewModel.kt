@@ -19,9 +19,10 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.kaorun.kadai.R
-import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskSortConfig
-import org.kaorun.kadai.data.TaskSortField
+import org.kaorun.kadai.data.entity.Task
+import org.kaorun.kadai.data.model.TaskSortConfig
+import org.kaorun.kadai.data.model.TaskSortField
+import org.kaorun.kadai.data.repository.RecentSearchRepository
 import org.kaorun.kadai.data.repository.TaskRepository
 import org.kaorun.kadai.data.repository.UserPreferencesRepository
 import org.kaorun.kadai.reminder.AlarmScheduler
@@ -31,9 +32,10 @@ import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    private val repository: TaskRepository,
+    private val taskRepository: TaskRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val scheduledNotificationRepository: ScheduledNotificationRepository,
+    private val recentSearchRepository: RecentSearchRepository,
     private val alarmScheduler: AlarmScheduler
 ) : ViewModel() {
     data class TaskSnackbarMessage(
@@ -62,13 +64,26 @@ class MainViewModel @Inject constructor(
             initialValue = TaskSortConfig()
         )
 
+    private val _recentSearchFilter = MutableStateFlow("")
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val recentSearches: StateFlow<List<String>> = _recentSearchFilter
+        .flatMapLatest { filter ->
+            recentSearchRepository.getAll(filter)
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
     val mainUiState: StateFlow<MainUiState> = _searchQuery
         .map { it.trim() }
         .distinctUntilChanged()
         .combine(sortConfig) { query, config -> query to config }
         .flatMapLatest { (query, config) ->
-            repository.getAllSorted(query, config.field, config.direction)
+            taskRepository.getAllSorted(query, config.field, config.direction)
         }
         .map<List<Task>, MainUiState> { tasks ->
             withContext(Dispatchers.Default) {
@@ -88,12 +103,28 @@ class MainViewModel @Inject constructor(
     fun onSortFieldSelected(field: TaskSortField) {
         viewModelScope.launch {
             val config = sortConfig.value.clickHandler(newField = field)
-            userPreferencesRepository.updateSortConfig(config)
+            userPreferencesRepository.setSortConfig(config)
         }
     }
 
     fun onSearchQueryChanged(query: String) {
         _searchQuery.value = query
+    }
+
+    fun onRecentSearchFilterChanged(query: String) {
+        _recentSearchFilter.value = query
+    }
+
+    fun onSaveRecentSearch(query: String) {
+        viewModelScope.launch {
+            recentSearchRepository.save(query)
+        }
+    }
+
+    fun onDeleteRecentSearch(query: String) {
+        viewModelScope.launch {
+            recentSearchRepository.delete(query)
+        }
     }
 
     fun onTaskCompletionToggled(task: Task, isCompleted: Boolean) {
@@ -106,14 +137,14 @@ class MainViewModel @Inject constructor(
             task.dueTimestamp?.let {
                 cancelNotification(task.id)
             }
-            repository.update(task.copy(isCompleted = isCompleted))
+            taskRepository.update(task.copy(isCompleted = isCompleted))
             showSnackbarMessage(messageResId, task, previousState = !isCompleted)
         }
     }
 
     fun onUndoTaskCompletion(task: Task, isCompleted: Boolean) {
         viewModelScope.launch {
-            repository.update(task.copy(isCompleted = isCompleted))
+            taskRepository.update(task.copy(isCompleted = isCompleted))
         }
     }
 

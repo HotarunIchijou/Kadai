@@ -14,12 +14,10 @@ android {
 
     defaultConfig {
         applicationId = "org.kaorun.kadai"
-        minSdk = 31
+        minSdk = 27
         targetSdk = 37
         versionCode = 1
-        versionName = "1.0"
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        versionName = "1.0.0"
     }
 
     buildTypes {
@@ -38,6 +36,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 }
 

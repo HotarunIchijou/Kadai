@@ -49,12 +49,14 @@ import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.material3.rememberContainedSearchBarState
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.BiasAlignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -68,9 +70,9 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
-import org.kaorun.kadai.data.TaskSortDirection
-import org.kaorun.kadai.data.TaskSortField
-import org.kaorun.kadai.data.TaskSortConfig
+import org.kaorun.kadai.data.model.TaskSortConfig
+import org.kaorun.kadai.data.model.TaskSortDirection
+import org.kaorun.kadai.data.model.TaskSortField
 import org.kaorun.kadai.ui.icons.arrow_back
 import org.kaorun.kadai.ui.icons.arrow_downward_alt
 import org.kaorun.kadai.ui.icons.arrow_upward_alt
@@ -84,11 +86,22 @@ fun TopAppBar(
     sortConfig: TaskSortConfig,
     onSortByClick: (TaskSortField) -> Unit,
     onSearch: (String) -> Unit,
+    recentSearches: List<String> = emptyList(),
+    onSaveRecentSearch: (String) -> Unit = {},
+    onDeleteRecentSearch: (String) -> Unit = {},
+    onRecentSearchFilterChange: (String) -> Unit = {},
 ) {
     val scope = rememberCoroutineScope()
     val searchBarState = rememberContainedSearchBarState()
     val textFieldState = rememberTextFieldState()
     var sortMenuExpanded by rememberSaveable { mutableStateOf(false) }
+
+    LaunchedEffect(textFieldState) {
+        snapshotFlow { textFieldState.text.toString() }
+            .collect { query ->
+                onRecentSearchFilterChange(query)
+            }
+    }
 
     val inputField = @Composable {
         SearchBarDefaults.InputField(
@@ -97,6 +110,9 @@ fun TopAppBar(
             onSearch = {
                 val query = textFieldState.text.toString().trim()
                 textFieldState.setTextAndPlaceCursorAtEnd(query)
+                if (query.isNotBlank()) {
+                    onSaveRecentSearch(query)
+                }
                 onSearch(query)
                 scope.launch { searchBarState.animateToCollapsed() }
             },
@@ -208,6 +224,16 @@ fun TopAppBar(
             colors = appBarWithSearchColors().searchBarColors
         ) {
             HorizontalDivider()
+
+            RecentSearchesList(
+                recentSearches = recentSearches,
+                textFieldState = textFieldState,
+                scope = scope,
+                searchBarState = searchBarState,
+                onSearch = onSearch,
+                onSaveRecentSearch = onSaveRecentSearch,
+                onDeleteRecentSearch = onDeleteRecentSearch
+            )
         }
     }
 }

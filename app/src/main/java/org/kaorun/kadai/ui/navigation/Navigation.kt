@@ -27,6 +27,9 @@ import androidx.navigation3.ui.NavDisplay
 import kotlinx.coroutines.android.awaitFrame
 import org.kaorun.kadai.ui.screens.main.MainScreen
 import org.kaorun.kadai.ui.screens.permission.PermissionScreen
+import org.kaorun.kadai.ui.screens.settings.about.SettingsAboutScreen
+import org.kaorun.kadai.ui.screens.settings.appearance.SettingsAppearanceScreen
+import org.kaorun.kadai.ui.screens.settings.main.SettingsScreen
 import org.kaorun.kadai.ui.screens.task.TaskScreen
 import org.kaorun.kadai.ui.screens.task.TaskViewModel
 
@@ -65,13 +68,13 @@ fun Navigation(
             slideOutHorizontally(animationSpec = spatialSpec, targetOffsetX = { it }) +
             fadeOut(animationSpec = fastFadeSpec)
 
+    val onBack = {
+        if (backStack.size > 1) backStack.removeLastOrNull()
+    }
+
     NavDisplay(
         backStack = backStack,
-        onBack = {
-            if (backStack.size > 1) {
-                backStack.removeLastOrNull()
-            }
-        },
+        onBack = onBack,
         entryDecorators = listOf(
             rememberSaveableStateHolderNavEntryDecorator(),
             rememberViewModelStoreNavEntryDecorator()
@@ -80,13 +83,14 @@ fun Navigation(
         popTransitionSpec = { popEnterTransition togetherWith popExitTransition },
         predictivePopTransitionSpec = { popEnterTransition togetherWith popExitTransition },
         entryProvider = entryProvider {
-            entry<PermissionRoute> {
+            entry<NotificationPermissionRoute> {
                 PermissionScreen(
                     onContinue = {
                         onCompleteOnboarding()
                         backStack.clear()
                         backStack.add(MainRoute)
                     },
+                    onBack = onBack,
                     canGoBack = backStack.size > 1
                 )
             }
@@ -100,8 +104,11 @@ fun Navigation(
                             backStack.add(AddTaskRoute())
                         }
                     },
+                    onNavigateToSettings = {
+                        backStack.add(SettingsRoute)
+                    },
                     onPermissionCardClick = {
-                        backStack.add(PermissionRoute)
+                        backStack.add(NotificationPermissionRoute)
                     }
                 )
             }
@@ -119,11 +126,7 @@ fun Navigation(
                 TaskScreen(
                     viewModel = viewModel,
                     modifier = Modifier.focusRequester(focusRequester),
-                    onBack = {
-                        if (backStack.size > 1) {
-                            backStack.removeLastOrNull()
-                        }
-                    }
+                    onBack = onBack
                 )
             }
 
@@ -136,11 +139,28 @@ fun Navigation(
 
                 TaskScreen(
                     viewModel = viewModel,
-                    onBack = {
-                        if (backStack.size > 1) {
-                            backStack.removeLastOrNull()
-                        }
-                    }
+                    onBack = onBack
+                )
+            }
+
+            entry<SettingsRoute> {
+                SettingsScreen(
+                    onNavigateToAppearance = { backStack.add(SettingsAppearanceRoute) },
+                    onNavigateToNotifications = { backStack.add(NotificationPermissionRoute) },
+                    onNavigateToAbout = { backStack.add(SettingsAboutRoute) },
+                    onBack = onBack
+                )
+            }
+
+            entry<SettingsAppearanceRoute> {
+                SettingsAppearanceScreen(
+                    onBack = onBack
+                )
+            }
+
+            entry<SettingsAboutRoute> {
+                SettingsAboutScreen(
+                    onBack = onBack
                 )
             }
         }

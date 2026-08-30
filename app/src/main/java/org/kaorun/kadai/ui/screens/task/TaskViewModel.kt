@@ -17,7 +17,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.entity.Task
 import org.kaorun.kadai.data.repository.TaskRepository
 import org.kaorun.kadai.reminder.AlarmScheduler
 import org.kaorun.kadai.reminder.data.ScheduledNotification
@@ -47,9 +47,9 @@ class TaskViewModel @Inject constructor(
             .filterIsInstance<TaskUiState.Success>()
             .distinctUntilChanged { old, new ->
                 old.title == new.title &&
-                old.details == new.details &&
-                old.dueTimestamp == new.dueTimestamp &&
-                old.isDone == new.isDone
+                    old.details == new.details &&
+                    old.dueTimestamp == new.dueTimestamp &&
+                    old.isDone == new.isDone
             }
             .drop(1)
             .debounce(300.milliseconds)
@@ -91,17 +91,20 @@ class TaskViewModel @Inject constructor(
         if (!isDeleted && _uiState.value is TaskUiState.Success) {
             viewModelScope.launch {
                 val currentState = _uiState.value as? TaskUiState.Success
-                if (currentState?.title?.isBlank() == true &&
-                    currentState.id != null &&
-                    currentState.id != 0L) {
+                val isBlankTask = currentState?.title?.isBlank() == true &&
+                    currentState.details.isNullOrBlank()
+
+                if (isBlankTask && currentState.id != null && currentState.id != 0L) {
                     cancelNotification(taskId = currentState.id)
                     taskRepository.delete(task = currentState.toTask())
-                } else {
+                } else if (!isBlankTask) {
                     save()
                 }
                 navigateBack()
             }
-        } else navigateBack()
+        } else {
+            navigateBack()
+        }
     }
 
     fun onTitleChange(value: String) {
@@ -158,16 +161,16 @@ class TaskViewModel @Inject constructor(
 
     private suspend fun save() = mutex.withLock {
         val currentState = _uiState.value as? TaskUiState.Success ?: return@withLock
-        if (currentState.title.isBlank()) return@withLock
+        if (currentState.title.isBlank() && currentState.details.isNullOrBlank()) return@withLock
 
         val currentTask = currentState.toTask()
         val previousTask = lastSavedTask
 
         val isUnchanged = previousTask != null &&
-                currentTask.title == previousTask.title &&
-                currentTask.details == previousTask.details &&
-                currentTask.dueTimestamp == previousTask.dueTimestamp &&
-                currentTask.isCompleted == previousTask.isCompleted
+            currentTask.title == previousTask.title &&
+            currentTask.details == previousTask.details &&
+            currentTask.dueTimestamp == previousTask.dueTimestamp &&
+            currentTask.isCompleted == previousTask.isCompleted
 
         if (isUnchanged) return@withLock
 
@@ -197,10 +200,14 @@ class TaskViewModel @Inject constructor(
         if (reminderChanged) {
             val dueTimestamp = currentTask.dueTimestamp
             if (dueTimestamp != null && dueTimestamp > Clock.System.now().toEpochMilliseconds()) {
+                val notificationTitle = currentTask.title.ifBlank { currentTask.details.orEmpty() }
+                val notificationDetails = if (currentTask.title.isNotBlank()) currentTask.details
+                else null
+
                 scheduleNotification(
                     taskId = savedId,
-                    title = currentTask.title,
-                    details = currentTask.details,
+                    title = notificationTitle,
+                    details = notificationDetails,
                     triggerAtMillis = dueTimestamp
                 )
             } else if (dueTimestamp == null && previousTask?.dueTimestamp != null) {

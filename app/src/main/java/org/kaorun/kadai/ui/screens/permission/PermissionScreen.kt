@@ -2,15 +2,16 @@
 
 package org.kaorun.kadai.ui.screens.permission
 
-import android.Manifest
+import android.Manifest.permission
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.content.Intent
-import android.os.Build
+import android.os.Build.VERSION
+import android.os.Build.VERSION_CODES
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -49,10 +50,11 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.app.ActivityCompat
-import androidx.lifecycle.Lifecycle
+import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle.Event
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import org.kaorun.kadai.R
+import org.kaorun.kadai.R.string
 import org.kaorun.kadai.ui.icons.notification_settings
 import org.kaorun.kadai.ui.screens.permission.components.PermissionCloseButton
 import org.kaorun.kadai.ui.screens.permission.components.PermissionHeader
@@ -60,18 +62,17 @@ import org.kaorun.kadai.ui.screens.permission.components.PermissionItem
 import org.kaorun.kadai.ui.screens.permission.components.PermissionItemsList
 import org.kaorun.kadai.ui.screens.permission.utils.isExactAlarmPermissionGranted
 import org.kaorun.kadai.ui.screens.permission.utils.isNotificationPermissionGranted
-import androidx.core.net.toUri
-
 
 @SuppressLint("ObsoleteSdkInt")
 @Composable
 fun PermissionScreen(
     onContinue: () -> Unit,
+    onBack: () -> Unit,
     canGoBack: Boolean = false
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val permissionDeniedString = stringResource(R.string.notification_permission_denied)
+    val permissionDeniedString = stringResource(string.notification_permission_denied)
     var currentToast: Toast? by remember { mutableStateOf(null) }
     var isNotificationGranted by remember {
         mutableStateOf(isNotificationPermissionGranted(context))
@@ -79,7 +80,11 @@ fun PermissionScreen(
     var isAlarmGranted by remember {
         mutableStateOf(isExactAlarmPermissionGranted(context))
     }
-    var isCloseButtonVisible by rememberSaveable { mutableStateOf(canGoBack) }
+
+    var isNotificationItemClicked by rememberSaveable { mutableStateOf(isNotificationGranted) }
+    var isExactAlarmItemClicked by rememberSaveable { mutableStateOf(isAlarmGranted) }
+    val isCloseButtonVisible = canGoBack || (isNotificationItemClicked && isExactAlarmItemClicked)
+
     val allGranted = isNotificationGranted && isAlarmGranted
 
     fun refreshPermissions() {
@@ -89,21 +94,21 @@ fun PermissionScreen(
 
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) refreshPermissions()
+            if (event == Event.ON_RESUME) refreshPermissions()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val notificationLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestPermission()
+        contract = RequestPermission()
     ) { granted ->
         refreshPermissions()
 
         if (!granted &&
             !ActivityCompat.shouldShowRequestPermissionRationale(
                 context as Activity,
-                Manifest.permission.POST_NOTIFICATIONS
+                permission.POST_NOTIFICATIONS
             )
         ) {
             currentToast?.cancel()
@@ -120,51 +125,31 @@ fun PermissionScreen(
         }
     }
 
-    PermissionScreenContent(
-        isNotificationGranted = isNotificationGranted,
-        isAlarmGranted = isAlarmGranted,
-        isCloseButtonVisible = isCloseButtonVisible,
-        isContinueButtonEnabled = allGranted,
-        onShowCloseButton = { isCloseButtonVisible = true },
-        onContinueClick = onContinue,
-        onRequestNotification = {
-            when {
-                Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU -> {
-                    context.startActivity(
-                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
-                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
-                    )
-                }
-                else -> notificationLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-            }
-        },
-        onRequestExactAlarm = {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+    val requestNotification = {
+        when {
+            VERSION.SDK_INT < VERSION_CODES.TIRAMISU -> {
                 context.startActivity(
-                    Intent(
-                        Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
-                        "package:${context.packageName}".toUri()
-                    )
+                    Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                 )
             }
-        }
-    )
-}
 
-@Composable
-private fun PermissionScreenContent(
-    isNotificationGranted: Boolean,
-    isAlarmGranted: Boolean,
-    isCloseButtonVisible: Boolean,
-    isContinueButtonEnabled: Boolean,
-    onShowCloseButton: () -> Unit,
-    onContinueClick: () -> Unit,
-    onRequestNotification: () -> Unit,
-    onRequestExactAlarm: () -> Unit,
-) {
-    val layoutDirection = LocalLayoutDirection.current
-    val notificationTitle = stringResource(R.string.notification_permission)
-    val alarmTitle = stringResource(R.string.schedule_exact_alarms)
+            else -> notificationLauncher.launch(permission.POST_NOTIFICATIONS)
+        }
+    }
+    val requestExactAlarm = {
+        if (VERSION.SDK_INT >= VERSION_CODES.S) {
+            context.startActivity(
+                Intent(
+                    Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM,
+                    "package:${context.packageName}".toUri()
+                )
+            )
+        }
+    }
+
+    val notificationTitle = stringResource(string.notification_permission)
+    val alarmTitle = stringResource(string.schedule_exact_alarms)
 
     val items = remember(
         isNotificationGranted,
@@ -177,20 +162,41 @@ private fun PermissionScreenContent(
                 title = notificationTitle,
                 isGranted = isNotificationGranted,
                 onClick = {
-                    onShowCloseButton()
-                    onRequestNotification()
+                    requestNotification()
+                    isNotificationItemClicked = true
                 }
             ),
             PermissionItem(
                 title = alarmTitle,
                 isGranted = isAlarmGranted,
                 onClick = {
-                    onShowCloseButton()
-                    onRequestExactAlarm()
+                    requestExactAlarm()
+                    isExactAlarmItemClicked = true
                 }
             )
         )
     }
+
+    PermissionScreenContent(
+        items = items,
+        isCloseButtonVisible = isCloseButtonVisible,
+        isContinueButtonEnabled = allGranted,
+        onContinue = onContinue,
+        onBack = onBack,
+        canGoBack = canGoBack
+    )
+}
+
+@Composable
+private fun PermissionScreenContent(
+    items: List<PermissionItem>,
+    isCloseButtonVisible: Boolean,
+    isContinueButtonEnabled: Boolean,
+    onContinue: () -> Unit,
+    onBack: () -> Unit,
+    canGoBack: Boolean
+) {
+    val layoutDirection = LocalLayoutDirection.current
 
     Scaffold(
         containerColor = colorScheme.surfaceContainer
@@ -216,7 +222,8 @@ private fun PermissionScreenContent(
                 ) {
                     Box(modifier = Modifier.padding(start = 20.dp, top = 8.dp)) {
                         PermissionCloseButton(
-                            onClose = onContinueClick,
+                            onClose = if (canGoBack) onBack
+                            else onContinue,
                             isVisible = isCloseButtonVisible
                         )
                     }
@@ -229,8 +236,8 @@ private fun PermissionScreenContent(
                     ) {
                         PermissionHeader(
                             icon = notification_settings,
-                            title = stringResource(R.string.notification_permission_title),
-                            summary = stringResource(R.string.notification_permission_summary)
+                            title = stringResource(string.notification_permission_title),
+                            summary = stringResource(string.notification_permission_summary)
                         )
 
                         Spacer(modifier = Modifier.height(32.dp))
@@ -250,7 +257,7 @@ private fun PermissionScreenContent(
                         .padding(horizontal = 24.dp, vertical = 16.dp)
                 ) {
                     Button(
-                        onClick = onContinueClick,
+                        onClick = onContinue,
                         modifier = Modifier.styleable {
                             height(ButtonDefaults.MediumContainerHeight)
                             fillWidth()
@@ -259,7 +266,7 @@ private fun PermissionScreenContent(
                         shapes = ButtonDefaults.shapes()
                     ) {
                         Text(
-                            text = stringResource(R.string.continue_button),
+                            text = stringResource(string.continue_button),
                             style = ButtonDefaults.textStyleFor(
                                 buttonHeight = ButtonDefaults.MediumContainerHeight
                             )
@@ -276,14 +283,12 @@ private fun PermissionScreenContent(
 private fun PermissionScreenPreview() {
     MaterialTheme {
         PermissionScreenContent(
-            isNotificationGranted = true,
-            isAlarmGranted = true,
+            items = emptyList(),
             isContinueButtonEnabled = true,
             isCloseButtonVisible = true,
-            onShowCloseButton = { },
-            onContinueClick = { },
-            onRequestNotification = { },
-            onRequestExactAlarm = { }
+            onContinue = { },
+            onBack = { },
+            canGoBack = true
         )
     }
 }

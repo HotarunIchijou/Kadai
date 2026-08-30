@@ -1,4 +1,4 @@
-package org.kaorun.kadai.data
+package org.kaorun.kadai.data.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey

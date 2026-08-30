@@ -16,7 +16,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarDuration
@@ -49,13 +49,16 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
-import org.kaorun.kadai.R
-import org.kaorun.kadai.data.Task
-import org.kaorun.kadai.data.TaskSortConfig
-import org.kaorun.kadai.data.TaskSortField
+import org.kaorun.kadai.R.string
+import org.kaorun.kadai.data.entity.Task
+import org.kaorun.kadai.data.model.TaskSortConfig
+import org.kaorun.kadai.data.model.TaskSortField
 import org.kaorun.kadai.ui.icons.add
 import org.kaorun.kadai.ui.icons.done_all
 import org.kaorun.kadai.ui.icons.filled.list_filled
+import org.kaorun.kadai.ui.screens.main.MainUiState.Loading
+import org.kaorun.kadai.ui.screens.main.MainUiState.Success
+import org.kaorun.kadai.ui.screens.main.MainViewModel.TaskSnackbarMessage
 import org.kaorun.kadai.ui.screens.main.components.FloatingToolbar
 import org.kaorun.kadai.ui.screens.main.components.ModalWideNavigationRail
 import org.kaorun.kadai.ui.screens.main.components.TaskList
@@ -68,12 +71,14 @@ import org.kaorun.kadai.ui.theme.KadaiTheme
 fun MainScreen(
     viewModel: MainViewModel = hiltViewModel(),
     onNavigateToTask: (Long?) -> Unit,
+    onNavigateToSettings: () -> Unit,
     onPermissionCardClick: () -> Unit
 ) {
     val uiState by viewModel.mainUiState.collectAsStateWithLifecycle()
     val sortConfig by viewModel.sortConfig.collectAsStateWithLifecycle()
     val snackbarMessage by viewModel.snackbarMessage.collectAsStateWithLifecycle()
     val isPermissionCardDismissed by viewModel.isPermissionCardDismissed.collectAsStateWithLifecycle()
+    val recentSearches by viewModel.recentSearches.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
 
     MainScreenContent(
@@ -82,11 +87,16 @@ fun MainScreen(
         snackbarMessage = snackbarMessage,
         snackbarHostState = snackbarHostState,
         onNavigateToTask = onNavigateToTask,
+        onNavigateToSettings = onNavigateToSettings,
         onSortFieldSelected = viewModel::onSortFieldSelected,
         onTaskCompletionToggled = viewModel::onTaskCompletionToggled,
         onUndoTaskCompletion = viewModel::onUndoTaskCompletion,
         onSnackbarMessageDismissed = viewModel::onSnackbarMessageDismissed,
         onSearchQueryChange = viewModel::onSearchQueryChanged,
+        recentSearches = recentSearches,
+        onSaveRecentSearch = viewModel::onSaveRecentSearch,
+        onDeleteRecentSearch = viewModel::onDeleteRecentSearch,
+        onRecentSearchFilterChange = viewModel::onRecentSearchFilterChanged,
         permissionCardDismissed = isPermissionCardDismissed,
         onPermissionCardClick = onPermissionCardClick,
         onPermissionDismissed = viewModel::onPermissionDismissed
@@ -97,14 +107,19 @@ fun MainScreen(
 fun MainScreenContent(
     uiState: MainUiState,
     sortConfig: TaskSortConfig,
-    snackbarMessage: MainViewModel.TaskSnackbarMessage?,
+    snackbarMessage: TaskSnackbarMessage?,
     snackbarHostState: SnackbarHostState,
     onSortFieldSelected: (TaskSortField) -> Unit,
     onNavigateToTask: (Long?) -> Unit,
+    onNavigateToSettings: () -> Unit,
     onTaskCompletionToggled: (Task, Boolean) -> Unit,
     onUndoTaskCompletion: (Task, Boolean) -> Unit,
     onSnackbarMessageDismissed: () -> Unit,
     onSearchQueryChange: (String) -> Unit,
+    recentSearches: List<String> = emptyList(),
+    onSaveRecentSearch: (String) -> Unit = {},
+    onDeleteRecentSearch: (String) -> Unit = {},
+    onRecentSearchFilterChange: (String) -> Unit = {},
     permissionCardDismissed: Boolean,
     onPermissionCardClick: () -> Unit,
     onPermissionDismissed: () -> Unit
@@ -118,7 +133,6 @@ fun MainScreenContent(
 
     val permissionCardVisible = !permissionsGranted && !permissionCardDismissed
 
-    // Always pulls current state directly without stale closures
     val currentUiState by rememberUpdatedState(uiState)
 
     val undoScrollHandler = remember(
@@ -135,14 +149,17 @@ fun MainScreenContent(
             permissionCardVisible = permissionCardVisible,
             currentTasks = {
                 when (val state = currentUiState) {
-                    is MainUiState.Success -> state.pendingTasks + state.completedTasks
+                    is Success -> state.pendingTasks + state.completedTasks
                     else -> emptyList()
                 }
             }
         )
     }
 
-    ModalWideNavigationRail(navigationRailState = navigationRailState)
+    ModalWideNavigationRail(
+        navigationRailState = navigationRailState,
+        onNavigateToSettings = onNavigateToSettings
+    )
 
     Scaffold(
         topBar = {
@@ -150,7 +167,11 @@ fun MainScreenContent(
                 navigationRailState = navigationRailState,
                 sortConfig = sortConfig,
                 onSortByClick = onSortFieldSelected,
-                onSearch = onSearchQueryChange
+                onSearch = onSearchQueryChange,
+                recentSearches = recentSearches,
+                onSaveRecentSearch = onSaveRecentSearch,
+                onDeleteRecentSearch = onDeleteRecentSearch,
+                onRecentSearchFilterChange = onRecentSearchFilterChange
             )
         },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
@@ -162,7 +183,7 @@ fun MainScreenContent(
                 onNavigateToTask = onNavigateToTask
             )
         },
-        containerColor = MaterialTheme.colorScheme.surfaceContainer
+        containerColor = colorScheme.surfaceContainer
     ) { innerPadding ->
         val layoutDirection = LocalLayoutDirection.current
         val listContentPadding = PaddingValues(
@@ -177,8 +198,8 @@ fun MainScreenContent(
         }
 
         when (uiState) {
-            is MainUiState.Loading -> Unit
-            is MainUiState.Success -> {
+            is Loading -> Unit
+            is Success -> {
                 HorizontalPager(
                     state = pagerState,
                     beyondViewportPageCount = 1,
@@ -214,7 +235,7 @@ fun MainScreenContent(
 
     snackbarMessage?.let { currentMessage ->
         val message = stringResource(id = currentMessage.messageResId)
-        val undoMessage = stringResource(R.string.undo)
+        val undoMessage = stringResource(string.undo)
 
         LaunchedEffect(currentMessage.id) {
             val result = snackbarHostState.showSnackbar(
@@ -246,8 +267,8 @@ private fun FloatingBar(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        val pendingText = stringResource(R.string.pending)
-        val completedText = stringResource(R.string.completed)
+        val pendingText = stringResource(string.pending)
+        val completedText = stringResource(string.completed)
         val toolbarItems = remember(pendingText, completedText) {
             mapOf(
                 list_filled to pendingText,
@@ -265,7 +286,7 @@ private fun FloatingBar(
             selectedIndex = pagerState.targetPage
         )
 
-        val addTaskDescription = stringResource(R.string.add_task)
+        val addTaskDescription = stringResource(string.add_task)
         TooltipBox(
             positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
                 TooltipAnchorPosition.Above
@@ -284,8 +305,8 @@ private fun FloatingBar(
         ) {
             FloatingActionButton(
                 onClick = { onNavigateToTask(null) },
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                containerColor = colorScheme.primaryContainer,
+                contentColor = colorScheme.onPrimaryContainer
             ) {
                 Icon(imageVector = add, contentDescription = addTaskDescription)
             }
@@ -306,7 +327,7 @@ private fun MainScreenContentPreview() {
 
     KadaiTheme {
         MainScreenContent(
-            uiState = MainUiState.Success(
+            uiState = Success(
                 pendingTasks = tasks,
                 completedTasks = emptyList()
             ),
@@ -315,6 +336,7 @@ private fun MainScreenContentPreview() {
             snackbarHostState = SnackbarHostState(),
             onSortFieldSelected = { },
             onNavigateToTask = { },
+            onNavigateToSettings = { },
             onTaskCompletionToggled = { _, _ -> },
             onUndoTaskCompletion = { _, _ -> },
             onSnackbarMessageDismissed = { },

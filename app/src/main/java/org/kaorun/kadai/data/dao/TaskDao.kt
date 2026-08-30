@@ -1,4 +1,4 @@
-package org.kaorun.kadai.data
+package org.kaorun.kadai.data.dao
 
 import androidx.room.Dao
 import androidx.room.Delete
@@ -9,6 +9,9 @@ import androidx.room.Update
 import androidx.sqlite.db.SimpleSQLiteQuery
 import androidx.sqlite.db.SupportSQLiteQuery
 import kotlinx.coroutines.flow.Flow
+import org.kaorun.kadai.data.entity.Task
+import org.kaorun.kadai.data.model.TaskSortDirection
+import org.kaorun.kadai.data.model.TaskSortField
 
 @Dao
 interface TaskDao {

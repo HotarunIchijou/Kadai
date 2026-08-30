@@ -1,6 +1,6 @@
 package org.kaorun.kadai.ui.screens.main
 
-import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.entity.Task
 
 sealed interface MainUiState {
     data object Loading : MainUiState

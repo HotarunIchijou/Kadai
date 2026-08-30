@@ -72,7 +72,7 @@ fun TaskListEmpty(
 
         Text(
             text = title,
-            style = typography.headlineMedium,
+            style = typography.headlineMediumEmphasized,
             textAlign = TextAlign.Center
         )
     }

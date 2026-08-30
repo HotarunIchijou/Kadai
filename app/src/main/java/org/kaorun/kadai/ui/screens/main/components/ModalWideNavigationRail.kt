@@ -14,8 +14,8 @@ import androidx.compose.material3.WideNavigationRailValue
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
@@ -28,9 +28,10 @@ import org.kaorun.kadai.ui.icons.task_alt
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ModalWideNavigationRail(
-    navigationRailState: WideNavigationRailState
+    navigationRailState: WideNavigationRailState,
+    onNavigateToSettings: () -> Unit
 ) {
-    var selectedItem by rememberSaveable { mutableIntStateOf(0) }
+    var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf(stringResource(R.string.tasks), stringResource(R.string.settings))
     val selectedIcons = listOf(task_alt_filled, settings_filled)
     val unselectedIcons = listOf(task_alt, settings)
@@ -48,6 +49,9 @@ fun ModalWideNavigationRail(
                     onClick = {
                         selectedItem = index
                         scope.launch { navigationRailState.collapse() }
+                        if (selectedItem == 1) {
+                            onNavigateToSettings()
+                        }
                     },
                     icon = {
                         Icon(

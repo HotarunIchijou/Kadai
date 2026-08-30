@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R
-import org.kaorun.kadai.data.Task
+import org.kaorun.kadai.data.entity.Task
 import org.kaorun.kadai.ui.icons.keyboard_arrow_down
 import org.kaorun.kadai.ui.screens.main.utils.animatedStrikethrough
 import org.kaorun.kadai.ui.utils.toFormattedDate
