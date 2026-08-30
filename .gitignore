@@ -2,6 +2,7 @@
 .gradle
 /.idea/*
 !.idea/codeStyles/
+!.idea/icon.svg
 /.artifacts
 /.kotlin
 .DS_Store
