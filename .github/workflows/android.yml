@@ -15,6 +15,18 @@ on:
       - '.github/**'
       - 'LICENSE'
       - '.gitignore'
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Gradle build task / target'
+        required: true
+        default: 'assembleDebug'
+        type: choice
+        options:
+          - 'assembleDebug'
+          - 'assembleRelease'
+          - 'check'
+          - 'build'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
