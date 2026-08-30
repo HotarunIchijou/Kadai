@@ -9,6 +9,8 @@
   <a href="https://developer.android.com/jetpack/compose"><img src="https://img.shields.io/badge/Compose-34A853?style=for-the-badge&logo=jetpackcompose&logoColor=white&logoSize=auto&labelColor=4285F4&color=34A853" alt="Jetpack Compose" /></a>
   <a href="https://developer.android.com"><img src="https://img.shields.io/badge/Android_8.1%2B-blue?style=for-the-badge&logo=android&logoColor=white&logoSize=auto&labelColor=%233DDC84&color=blue" alt="Android version" /></a>
   <a href="https://github.com/HotarunIchijou/Kadai/blob/master/LICENSE"><img src="https://img.shields.io/badge/GNU%20GPL3-blue?style=for-the-badge&logo=gplv3&logoColor=white&logoSize=auto&labelColor=%23BD0000&color=blue" alt="GNU GPLv3" /></a>
+  <a href="https://github.com/HotarunIchijou/Kadai/actions"><img src="https://img.shields.io/github/actions/workflow/status/HotarunIchijou/Kadai/android.yml?branch=master&style=for-the-badge&label=CI&labelColor=gray&color=2ea44f" alt="Build Status" /></a>
+  <a href="https://github.com/HotarunIchijou/Kadai/releases"><img src="https://img.shields.io/github/release/HotarunIchijou/Kadai?style=for-the-badge&label=Version&labelColor=gray&color=blue" alt="Version" /></a>
 </p>
 
 **Kadai** is a modern, lightweight, and privacy-respecting Android todo app. Built from the ground up with 100% Kotlin, Jetpack Compose, and
