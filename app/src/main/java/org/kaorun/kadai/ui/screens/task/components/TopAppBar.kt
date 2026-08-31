@@ -2,6 +2,7 @@
 
 package org.kaorun.kadai.ui.screens.task.components
 
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -27,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import org.kaorun.kadai.R
@@ -38,7 +40,9 @@ import org.kaorun.kadai.ui.icons.more_vert
 @Composable
 fun TopAppBar(
     onBack: () -> Unit,
-    onDelete: () -> Unit
+    onDelete: () -> Unit,
+    containerColor: Color = MaterialTheme.colorScheme.surfaceContainer,
+    windowInsets: WindowInsets = TopAppBarDefaults.windowInsets
 ) {
     TopAppBar(
         title = { },
@@ -77,8 +81,9 @@ fun TopAppBar(
             )
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainer
+            containerColor = containerColor
         ),
+        windowInsets = windowInsets,
         contentPadding = TopAppBarDefaults.ContentPadding,
     )
 }
@@ -104,11 +109,13 @@ private fun MenuButton(
         IconButton(
             onClick = { expanded = true },
             shapes = IconButtonDefaults.shapes(),
-            modifier = Modifier.minimumInteractiveComponentSize().size(
-                IconButtonDefaults.smallContainerSize(
-                    IconButtonDefaults.IconButtonWidthOption.Narrow
-                )
-            ),
+            modifier = Modifier
+                .minimumInteractiveComponentSize()
+                .size(
+                    IconButtonDefaults.smallContainerSize(
+                        IconButtonDefaults.IconButtonWidthOption.Narrow
+                    )
+                ),
             colors = IconButtonDefaults.iconButtonColors(
                 containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 contentColor = MaterialTheme.colorScheme.onSurfaceVariant

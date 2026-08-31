@@ -1,14 +1,25 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalMaterial3ExpressiveApi::class,
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3AdaptiveApi::class
+)
 
 package org.kaorun.kadai.ui.screens.task
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ButtonGroup
 import androidx.compose.material3.ButtonGroupDefaults
@@ -19,7 +30,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.MaterialTheme.typography
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import androidx.compose.material3.adaptive.navigation3.LocalListDetailSceneScope
 import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -29,11 +46,15 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
 import org.kaorun.kadai.R
 import org.kaorun.kadai.ui.icons.calendar_month
 import org.kaorun.kadai.ui.icons.schedule
@@ -61,27 +82,63 @@ fun TaskScreen(
     modifier: Modifier = Modifier,
     onBack: () -> Unit
 ) {
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
+    val isWideScreen =
+        windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
+    val isDetailPane = (LocalListDetailSceneScope.current != null) || isWideScreen
 
-    when (val state = uiState) {
-        is TaskUiState.Loading -> Unit
-        is TaskUiState.Success -> {
-            TaskScreenContent(
-                modifier = modifier,
-                title = state.title,
-                details = state.details,
-                createdAtTimestamp = state.createdAtTimestamp,
-                modifiedAtTimestamp = state.modifiedAtTimestamp,
-                dueTimestamp = state.dueTimestamp,
-                isDone = state.isDone,
-                isNewTask = state.isNewTask,
-                onClose = { viewModel.onBack(navigateBack = onBack) },
-                onTitleChange = viewModel::onTitleChange,
-                onDetailsChange = viewModel::onDetailsChange,
-                onTimestampChange = viewModel::onTimestampChange,
-                onDoneChange = viewModel::onDoneChange,
-                onDelete = viewModel::onDelete
-            )
+    val containerColor = if (isDetailPane) {
+        colorScheme.surfaceContainerLow
+    } else {
+        colorScheme.surfaceContainer
+    }
+
+    val paneShape = if (isDetailPane) RoundedCornerShape(28.dp) else RectangleShape
+    val insets = WindowInsets.safeDrawing.only(
+        WindowInsetsSides.Top + WindowInsetsSides.End + WindowInsetsSides.Bottom
+    )
+
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .then(
+                if (isDetailPane) {
+                    Modifier
+                        .windowInsetsPadding(insets)
+                        .consumeWindowInsets(WindowInsets.safeDrawing)
+                        .padding(end = 16.dp)
+                        .clip(paneShape)
+                } else {
+                    Modifier
+                }
+            ),
+        shape = paneShape,
+        color = containerColor
+    ) {
+        val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+        when (val state = uiState) {
+            is TaskUiState.Loading -> Unit
+            is TaskUiState.Success -> {
+                TaskScreenContent(
+                    modifier = modifier,
+                    title = state.title,
+                    details = state.details,
+                    createdAtTimestamp = state.createdAtTimestamp,
+                    modifiedAtTimestamp = state.modifiedAtTimestamp,
+                    dueTimestamp = state.dueTimestamp,
+                    isDone = state.isDone,
+                    isNewTask = state.isNewTask,
+                    isDetailPane = isDetailPane,
+                    containerColor = containerColor,
+                    onClose = { viewModel.onBack(navigateBack = onBack) },
+                    onTitleChange = viewModel::onTitleChange,
+                    onDetailsChange = viewModel::onDetailsChange,
+                    onTimestampChange = viewModel::onTimestampChange,
+                    onDoneChange = viewModel::onDoneChange,
+                    onDelete = viewModel::onDelete
+                )
+            }
         }
     }
 }
@@ -96,6 +153,8 @@ fun TaskScreenContent(
     dueTimestamp: Long?,
     isDone: Boolean,
     isNewTask: Boolean = false,
+    isDetailPane: Boolean = false,
+    containerColor: Color = colorScheme.surfaceContainer,
     onTitleChange: (String) -> Unit,
     onDetailsChange: (String) -> Unit,
     onTimestampChange: (Long?) -> Unit,
@@ -133,13 +192,25 @@ fun TaskScreenContent(
     var isDialogDateVisible by rememberSaveable { mutableStateOf(false) }
 
     Scaffold(
+        modifier = Modifier.fillMaxSize(),
+        contentWindowInsets = if (isDetailPane) {
+            WindowInsets(0, 0, 0, 0)
+        } else {
+            ScaffoldDefaults.contentWindowInsets
+        },
         topBar = {
             TopAppBar(
                 onBack = onClose,
-                onDelete = onDelete
+                onDelete = onDelete,
+                containerColor = containerColor,
+                windowInsets = if (isDetailPane) {
+                    WindowInsets(0, 0, 0, 0)
+                } else {
+                    TopAppBarDefaults.windowInsets
+                }
             )
         },
-        containerColor = colorScheme.surfaceContainer,
+        containerColor = containerColor,
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onDoneChange(!isDone) },

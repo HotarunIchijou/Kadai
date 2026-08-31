@@ -53,6 +53,7 @@ fun TaskList(
     state: LazyListState = rememberLazyListState(),
     contentPadding: PaddingValues,
     showPermissionCard: Boolean,
+    selectedTaskId: Long? = null,
     onClick: (Task) -> Unit,
     onCheck: (Task, Boolean) -> Unit,
     onPermissionCardClick: () -> Unit,
@@ -90,7 +91,7 @@ fun TaskList(
                 start = contentPadding.calculateStartPadding(layoutDirection),
                 top = contentPadding.calculateTopPadding(),
                 end = contentPadding.calculateEndPadding(layoutDirection),
-                bottom = contentPadding.calculateBottomPadding() + 64.dp
+                bottom = contentPadding.calculateBottomPadding()
             ),
             verticalArrangement = Arrangement.spacedBy(ListItemDefaults.SegmentedGap)
         ) {
@@ -156,6 +157,7 @@ fun TaskList(
                 }
 
                 SegmentedListItem(
+                    selected = task.id == selectedTaskId,
                     onClick = { onClick(task) },
                     shapes = ListItemDefaults.segmentedShapes(
                         index = index,

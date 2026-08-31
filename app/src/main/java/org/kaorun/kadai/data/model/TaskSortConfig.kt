@@ -9,6 +9,7 @@ data class TaskSortConfig(
             copy(direction = direction.toggle())
         } else {
             val defaultDirection = when (newField) {
+                TaskSortField.DATE_MODIFIED -> TaskSortDirection.DESCENDING
                 TaskSortField.DATE_CREATED -> TaskSortDirection.DESCENDING
                 TaskSortField.DATE_REMINDER -> TaskSortDirection.DESCENDING
                 TaskSortField.TITLE -> TaskSortDirection.ASCENDING

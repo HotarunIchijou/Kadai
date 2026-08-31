@@ -68,7 +68,7 @@ class UserPreferencesRepository @Inject constructor(
         .map { preferences ->
             val sortBy = preferences[PreferencesKeys.SORT_BY]?.let { name ->
                 TaskSortField.entries.find { it.name == name }
-            } ?: TaskSortField.DATE_CREATED
+            } ?: TaskSortField.DATE_MODIFIED
 
             val direction = preferences[PreferencesKeys.SORT_DIRECTION]?.let { name ->
                 TaskSortDirection.entries.find { it.name == name }

@@ -42,7 +42,8 @@
     <string name="snackbar_message_completed">Task has been completed</string>
     <string name="snackbar_message_uncompleted">Task marked as uncompleted</string>
     <string name="undo">Undo</string>
-    <string name="date_created">Date created</string>
+    <string name="date_modified">Modified date</string>
+    <string name="date_created">Created date</string>
     <string name="date_reminder">Due date</string>
     <string name="sort_by">Sort by</string>
     <string name="Selected_icon">Selected</string>
@@ -73,4 +74,5 @@
     <string name="license_summary">This project is licensed under GNU GPLv3 license</string>
     <string name="contact_developer_title">Contact via Telegram</string>
     <string name="contact_developer_summary">Contact application developer via Telegram</string>
+    <string name="task_edit_placeholder">Select a task to view details</string>
 </resources>

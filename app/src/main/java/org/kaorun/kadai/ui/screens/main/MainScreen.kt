@@ -1,13 +1,20 @@
-@file:OptIn(ExperimentalMaterial3Api::class)
+@file:OptIn(
+    ExperimentalMaterial3Api::class,
+    ExperimentalMaterial3AdaptiveApi::class
+)
 
 package org.kaorun.kadai.ui.screens.main
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
@@ -19,6 +26,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme.colorScheme
 import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -27,6 +35,8 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TooltipAnchorPosition
 import androidx.compose.material3.TooltipBox
 import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.rememberWideNavigationRailState
 import androidx.compose.runtime.Composable
@@ -43,10 +53,10 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.window.core.layout.WindowSizeClass
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 import org.kaorun.kadai.R.string
@@ -65,11 +75,12 @@ import org.kaorun.kadai.ui.screens.main.components.TaskList
 import org.kaorun.kadai.ui.screens.main.components.TopAppBar
 import org.kaorun.kadai.ui.screens.main.utils.UndoScrollHandler
 import org.kaorun.kadai.ui.screens.permission.utils.rememberPermissionsGranted
-import org.kaorun.kadai.ui.theme.KadaiTheme
 
 @Composable
 fun MainScreen(
+    modifier: Modifier = Modifier,
     viewModel: MainViewModel = hiltViewModel(),
+    selectedTaskId: Long? = null,
     onNavigateToTask: (Long?) -> Unit,
     onNavigateToSettings: () -> Unit,
     onPermissionCardClick: () -> Unit
@@ -82,10 +93,12 @@ fun MainScreen(
     val snackbarHostState = remember { SnackbarHostState() }
 
     MainScreenContent(
+        modifier = modifier.fillMaxSize(),
         uiState = uiState,
         sortConfig = sortConfig,
         snackbarMessage = snackbarMessage,
         snackbarHostState = snackbarHostState,
+        selectedTaskId = selectedTaskId,
         onNavigateToTask = onNavigateToTask,
         onNavigateToSettings = onNavigateToSettings,
         onSortFieldSelected = viewModel::onSortFieldSelected,
@@ -109,6 +122,8 @@ fun MainScreenContent(
     sortConfig: TaskSortConfig,
     snackbarMessage: TaskSnackbarMessage?,
     snackbarHostState: SnackbarHostState,
+    modifier: Modifier = Modifier,
+    selectedTaskId: Long? = null,
     onSortFieldSelected: (TaskSortField) -> Unit,
     onNavigateToTask: (Long?) -> Unit,
     onNavigateToSettings: () -> Unit,
@@ -132,7 +147,6 @@ fun MainScreenContent(
     val completedListState = rememberLazyListState()
 
     val permissionCardVisible = !permissionsGranted && !permissionCardDismissed
-
     val currentUiState by rememberUpdatedState(uiState)
 
     val undoScrollHandler = remember(
@@ -156,77 +170,96 @@ fun MainScreenContent(
         )
     }
 
-    ModalWideNavigationRail(
-        navigationRailState = navigationRailState,
-        onNavigateToSettings = onNavigateToSettings
-    )
+    val windowSizeClass = currentWindowAdaptiveInfoV2().windowSizeClass
+    val isWideScreen =
+        windowSizeClass.isWidthAtLeastBreakpoint(WindowSizeClass.WIDTH_DP_MEDIUM_LOWER_BOUND)
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                navigationRailState = navigationRailState,
-                sortConfig = sortConfig,
-                onSortByClick = onSortFieldSelected,
-                onSearch = onSearchQueryChange,
-                recentSearches = recentSearches,
-                onSaveRecentSearch = onSaveRecentSearch,
-                onDeleteRecentSearch = onDeleteRecentSearch,
-                onRecentSearchFilterChange = onRecentSearchFilterChange
-            )
-        },
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        floatingActionButtonPosition = FabPosition.Center,
-        floatingActionButton = {
-            FloatingBar(
-                pagerState = pagerState,
-                scope = scope,
-                onNavigateToTask = onNavigateToTask
-            )
-        },
-        containerColor = colorScheme.surfaceContainer
-    ) { innerPadding ->
-        val layoutDirection = LocalLayoutDirection.current
-        val listContentPadding = PaddingValues(
-            start = 16.dp + innerPadding.calculateStartPadding(layoutDirection),
-            top = innerPadding.calculateTopPadding() + 16.dp,
-            end = 16.dp + innerPadding.calculateEndPadding(layoutDirection),
-            bottom = innerPadding.calculateBottomPadding() + 16.dp
+    Box(modifier = modifier.fillMaxSize()) {
+        ModalWideNavigationRail(
+            navigationRailState = navigationRailState,
+            onNavigateToSettings = onNavigateToSettings
         )
 
-        val handleTaskClick = remember(onNavigateToTask) {
-            { task: Task -> onNavigateToTask(task.id) }
-        }
+        Scaffold(
+            modifier = Modifier.fillMaxSize(),
+            contentWindowInsets = if (isWideScreen) {
+                WindowInsets.safeDrawing.only(
+                    WindowInsetsSides.Start + WindowInsetsSides.Bottom
+                )
+            } else {
+                ScaffoldDefaults.contentWindowInsets
+            },
+            topBar = {
+                TopAppBar(
+                    navigationRailState = navigationRailState,
+                    sortConfig = sortConfig,
+                    onSortByClick = onSortFieldSelected,
+                    onSearch = onSearchQueryChange,
+                    recentSearches = recentSearches,
+                    onSaveRecentSearch = onSaveRecentSearch,
+                    onDeleteRecentSearch = onDeleteRecentSearch,
+                    onRecentSearchFilterChange = onRecentSearchFilterChange
+                )
+            },
+            snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+            floatingActionButtonPosition = FabPosition.Center,
+            floatingActionButton = {
+                FloatingBar(
+                    pagerState = pagerState,
+                    scope = scope,
+                    onNavigateToTask = onNavigateToTask
+                )
+            },
+            containerColor = colorScheme.surfaceContainer
+        ) { innerPadding ->
+            val layoutDirection = LocalLayoutDirection.current
+            val listContentPadding = PaddingValues(
+                start = 16.dp + innerPadding.calculateStartPadding(layoutDirection),
+                top = innerPadding.calculateTopPadding() + 16.dp,
+                end = 16.dp,
+                bottom = innerPadding.calculateBottomPadding() + 88.dp
+            )
 
-        when (uiState) {
-            is Loading -> Unit
-            is Success -> {
-                HorizontalPager(
-                    state = pagerState,
-                    beyondViewportPageCount = 1,
-                    verticalAlignment = Alignment.Top,
-                    modifier = Modifier.fillMaxSize()
-                ) { page ->
-                    when (page) {
-                        0 -> TaskList(
-                            tasks = uiState.pendingTasks,
-                            state = pendingListState,
-                            contentPadding = listContentPadding,
-                            showPermissionCard = permissionCardVisible,
-                            onClick = handleTaskClick,
-                            onCheck = onTaskCompletionToggled,
-                            onPermissionCardClick = onPermissionCardClick,
-                            onPermissionCardCloseClick = onPermissionDismissed
-                        )
-                        1 -> TaskList(
-                            tasks = uiState.completedTasks,
-                            state = completedListState,
-                            contentPadding = listContentPadding,
-                            showPermissionCard = permissionCardVisible,
-                            onClick = handleTaskClick,
-                            onCheck = onTaskCompletionToggled,
-                            onPermissionCardClick = onPermissionCardClick,
-                            onPermissionCardCloseClick = onPermissionDismissed
-                        )
+            val handleTaskClick = remember(onNavigateToTask) {
+                { task: Task -> onNavigateToTask(task.id) }
+            }
+
+            when (uiState) {
+                is Loading -> Unit
+                is Success -> {
+                    val effectiveSelectedTaskId = if (isWideScreen) selectedTaskId else null
+
+                    HorizontalPager(
+                        state = pagerState,
+                        beyondViewportPageCount = 1,
+                        verticalAlignment = Alignment.Top,
+                        modifier = Modifier.fillMaxSize()
+                    ) { page ->
+                        when (page) {
+                            0 -> TaskList(
+                                tasks = uiState.pendingTasks,
+                                state = pendingListState,
+                                contentPadding = listContentPadding,
+                                showPermissionCard = permissionCardVisible,
+                                selectedTaskId = effectiveSelectedTaskId,
+                                onClick = handleTaskClick,
+                                onCheck = onTaskCompletionToggled,
+                                onPermissionCardClick = onPermissionCardClick,
+                                onPermissionCardCloseClick = onPermissionDismissed
+                            )
+
+                            1 -> TaskList(
+                                tasks = uiState.completedTasks,
+                                state = completedListState,
+                                contentPadding = listContentPadding,
+                                showPermissionCard = permissionCardVisible,
+                                selectedTaskId = effectiveSelectedTaskId,
+                                onClick = handleTaskClick,
+                                onCheck = onTaskCompletionToggled,
+                                onPermissionCardClick = onPermissionCardClick,
+                                onPermissionCardCloseClick = onPermissionDismissed
+                            )
+                        }
                     }
                 }
             }
@@ -311,39 +344,5 @@ private fun FloatingBar(
                 Icon(imageVector = add, contentDescription = addTaskDescription)
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-private fun MainScreenContentPreview() {
-    val tasks = List(10) {
-        Task(
-            id = it.toLong(),
-            title = "Task ${it + 1}",
-            details = "Lorem ipsum dolor sit amet"
-        )
-    }
-
-    KadaiTheme {
-        MainScreenContent(
-            uiState = Success(
-                pendingTasks = tasks,
-                completedTasks = emptyList()
-            ),
-            sortConfig = TaskSortConfig(),
-            snackbarMessage = null,
-            snackbarHostState = SnackbarHostState(),
-            onSortFieldSelected = { },
-            onNavigateToTask = { },
-            onNavigateToSettings = { },
-            onTaskCompletionToggled = { _, _ -> },
-            onUndoTaskCompletion = { _, _ -> },
-            onSnackbarMessageDismissed = { },
-            onSearchQueryChange = { },
-            permissionCardDismissed = false,
-            onPermissionCardClick = { },
-            onPermissionDismissed = { }
-        )
     }
 }

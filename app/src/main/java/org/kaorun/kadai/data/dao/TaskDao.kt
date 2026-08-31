@@ -30,6 +30,8 @@ interface TaskDao {
         else ""
 
         val sort = when (field) {
+            TaskSortField.DATE_MODIFIED ->
+                "${field.column} ${direction.value}, id ASC"
             TaskSortField.DATE_REMINDER ->
                 "(${field.column} IS NULL) ASC, ${field.column} ${direction.value}, id ASC"
             TaskSortField.TITLE ->

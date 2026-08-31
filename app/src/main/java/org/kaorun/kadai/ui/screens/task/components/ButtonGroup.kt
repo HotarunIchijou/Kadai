@@ -51,7 +51,7 @@ fun ButtonGroupScope.buttonGroupToggleItem(
                 enabled = enabled,
                 onCheckedChange = { onClick() },
                 interactionSource = interactionSource,
-                colors = FilledTonalToggleButtonDefaults.filledTonalToggleButtonColors(),
+                colors = FilledTonalToggleButtonDefaults.colors(),
                 contentPadding = ButtonDefaults.ExtraSmallContentPadding,
                 modifier = Modifier
                     .animateWidth(interactionSource)

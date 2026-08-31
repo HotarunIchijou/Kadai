@@ -63,6 +63,10 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+        window.decorView.post {
+            window.decorView.clearFocus()
+        }
+
     }
 
     override fun onNewIntent(intent: Intent) {
